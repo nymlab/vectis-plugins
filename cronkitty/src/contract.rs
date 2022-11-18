@@ -1,9 +1,13 @@
 use crate::error::ContractError;
 use cosmwasm_std::{
-    to_binary, CanonicalAddr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, WasmMsg,
+    to_binary, CanonicalAddr, CosmosMsg, DepsMut, Empty, Env, MessageInfo, Response, SubMsg,
+    WasmMsg,
 };
 use cw2::set_contract_version;
-use cw_croncat_core::{msg::TaskRequest, types::Action};
+use cw_croncat_core::{
+    msg::{ExecuteMsg as CCExecMsg, TaskRequest},
+    types::Action,
+};
 use cw_storage_plus::{Item, Map};
 use sylvia::contract;
 
@@ -12,9 +16,10 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct CronKittyPlugin<'a> {
     /// action_id: task_hash, actions
-    pub(crate) actions: Map<'a, u64, Vec<Action>>,
+    pub(crate) actions: Map<'a, u64, Vec<CosmosMsg>>,
     pub(crate) owner: Item<'a, CanonicalAddr>,
     pub(crate) action_id: Item<'a, u64>,
+    pub(crate) croncat: Item<'a, CanonicalAddr>,
 }
 
 #[contract]
@@ -24,6 +29,7 @@ impl CronKittyPlugin<'_> {
             actions: Map::new("actions"),
             owner: Item::new("owner"),
             action_id: Item::new("id"),
+            croncat: Item::new("croncat"),
         }
     }
 
@@ -43,7 +49,15 @@ impl CronKittyPlugin<'_> {
         ctx: (DepsMut, Env, MessageInfo),
         action_id: u64,
     ) -> Result<Response, ContractError> {
-        Ok(Response::new())
+        let (deps, _, info) = ctx;
+        if info.sender != deps.api.addr_humanize(&self.croncat.load(deps.storage)?)? {
+            Err(ContractError::Unauthorized {})
+        } else {
+            let actions = self.actions.load(deps.storage, action_id)?;
+            // These msgs should call the owner proxy contract
+            // Proxy contract will give permission to this plugin to call itself
+            Ok(Response::new().add_messages(actions))
+        }
     }
 
     #[msg(exec)]
@@ -57,10 +71,14 @@ impl CronKittyPlugin<'_> {
             Err(ContractError::Unauthorized {})
         } else {
             let id = self.action_id.load(deps.storage)?;
+            self.actions.save(
+                deps.storage,
+                id,
+                &tq.actions.iter().cloned().map(|a| a.msg).collect(),
+            )?;
 
-            self.actions.save(deps.storage, id, &tq.actions.clone())?;
             let action = Action {
-                msg: CosmosMsg::<()>::Wasm(WasmMsg::Execute {
+                msg: CosmosMsg::<Empty>::Wasm(WasmMsg::Execute {
                     contract_addr: env.contract.address.to_string(),
                     msg: to_binary(&ExecMsg::Execute { action_id: id })?,
                     funds: vec![],
@@ -69,20 +87,25 @@ impl CronKittyPlugin<'_> {
                 gas_limit: None,
             };
 
-            //Pub struct TaskRequest {
-            //    pub interval: Interval,
-            //    pub boundary: Option<Boundary>,
-            //    pub stop_on_fail: bool,
-            //    pub actions: Vec<Action>,
-            //    pub rules: Option<Vec<Rule>>,
-            //    pub cw20_coins: Vec<Cw20Coin>,
-            //}
-            //
+            // We forward all the other params (so we can contribute / use to frontend code)
+            // The Action called is to call this plugin at the given intervals
+            tq.actions = vec![action];
+            tq.cw20_coins = vec![];
 
-            self.action_id.update(deps.storage, |id| {
-                id.checked_add(1).ok_or(ContractError::Overflow)
-            })?;
-            Ok(Response::new())
+            let msg = SubMsg::reply_always(
+                CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: deps
+                        .api
+                        .addr_humanize(&self.croncat.load(deps.storage)?)?
+                        .to_string(),
+                    msg: to_binary(&CCExecMsg::CreateTask { task: tq })?,
+                    // TODO: find out how much to send here
+                    funds: vec![],
+                }),
+                id,
+            );
+
+            Ok(Response::new().add_submessage(msg))
         }
     }
 }

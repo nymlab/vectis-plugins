@@ -9,9 +9,9 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
-    #[error("Contract is frozen")]
-    ContractFrozen {},
-
     #[error("Overflow")]
     Overflow,
+
+    #[error("InvalidReplyId")]
+    InvalidReplyId,
 }
