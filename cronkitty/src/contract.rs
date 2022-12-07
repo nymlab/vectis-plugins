@@ -1,8 +1,8 @@
 use crate::error::ContractError;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
-    StdResult, SubMsg, WasmMsg,
+    coin, ensure, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo,
+    Response, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_croncat_core::{
@@ -18,13 +18,15 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cw_serde]
 pub struct StoredMsgsResp {
     msgs: Vec<CosmosMsg>,
+    task_hash: Option<String>,
 }
 
 pub struct CronKittyPlugin<'a> {
-    pub actions: Map<'a, u64, Vec<CosmosMsg>>,
+    pub actions: Map<'a, u64, (Vec<CosmosMsg>, Option<String>)>,
     pub owner: Item<'a, CanonicalAddr>,
     pub action_id: Item<'a, u64>,
     pub croncat: Item<'a, CanonicalAddr>,
+    pub denom: Item<'a, String>,
 }
 
 #[contract]
@@ -35,6 +37,7 @@ impl CronKittyPlugin<'_> {
             owner: Item::new("owner"),
             action_id: Item::new("id"),
             croncat: Item::new("croncat"),
+            denom: Item::new("denom"),
         }
     }
 
@@ -43,6 +46,7 @@ impl CronKittyPlugin<'_> {
         &self,
         ctx: (DepsMut, Env, MessageInfo),
         croncat_addr: String,
+        denom: String,
     ) -> Result<Response, ContractError> {
         let (deps, _, info) = ctx;
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -54,6 +58,7 @@ impl CronKittyPlugin<'_> {
             .api
             .addr_canonicalize(&deps.api.addr_validate(&croncat_addr)?.as_str())?;
         self.croncat.save(deps.storage, &croncat)?;
+        self.denom.save(deps.storage, &denom)?;
         self.action_id.save(deps.storage, &0)?;
         Ok(Response::new())
     }
@@ -68,29 +73,54 @@ impl CronKittyPlugin<'_> {
         if info.sender != deps.api.addr_humanize(&self.croncat.load(deps.storage)?)? {
             Err(ContractError::Unauthorized {})
         } else {
-            let actions = self.actions.load(deps.storage, action_id)?;
+            let taskx = self.actions.load(deps.storage, action_id)?;
             // These msgs should call the owner proxy contract
             // Proxy contract will give permission to this plugin to call itself
-            Ok(Response::new().add_messages(actions))
+            Ok(Response::new().add_messages(taskx.0))
         }
     }
 
     #[msg(exec)]
-    fn add_task(
+    fn create_task(
         &self,
         ctx: (DepsMut, Env, MessageInfo),
         mut tq: TaskRequest,
     ) -> Result<Response, ContractError> {
         let (deps, env, info) = ctx;
+
+        // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized {})
         } else {
+            // The id for croncat to call the actions in this task
             let id = self.action_id.load(deps.storage)?;
             self.actions.save(
                 deps.storage,
                 id,
-                &tq.actions.iter().cloned().map(|a| a.msg).collect(),
+                &(tq.actions.iter().cloned().map(|a| a.msg).collect(), None),
             )?;
+
+            // make sure forward max gas_limit over to croncat
+            let gas_limit = tq.actions.iter().try_fold(0u64, |acc, a| {
+                acc.checked_add(a.gas_limit.unwrap_or(0))
+                    .ok_or(ContractError::Overflow)
+            })?;
+            let denom = self.denom.load(deps.storage)?;
+            ensure!(
+                info.funds
+                    .iter()
+                    .find(|c| c.denom == denom)
+                    .unwrap_or(&coin(0, denom))
+                    .amount
+                    >= Uint128::from(gas_limit),
+                ContractError::NotEnoughFundsForGas
+            );
+
+            let gas_limit = if gas_limit == 0 {
+                None
+            } else {
+                Some(gas_limit)
+            };
 
             let action = Action {
                 msg: CosmosMsg::<Empty>::Wasm(WasmMsg::Execute {
@@ -98,8 +128,7 @@ impl CronKittyPlugin<'_> {
                     msg: to_binary(&ExecMsg::Execute { action_id: id })?,
                     funds: vec![],
                 }),
-                // what is right here?
-                gas_limit: Some(150_000),
+                gas_limit,
             };
 
             // We forward all the other params (so we can contribute / use to frontend code)
@@ -107,20 +136,39 @@ impl CronKittyPlugin<'_> {
             tq.actions = vec![action];
             tq.cw20_coins = vec![];
 
-            let msg = SubMsg::reply_always(
+            let msg = SubMsg::reply_on_success(
                 CosmosMsg::Wasm(WasmMsg::Execute {
                     contract_addr: deps
                         .api
                         .addr_humanize(&self.croncat.load(deps.storage)?)?
                         .to_string(),
                     msg: to_binary(&CCExecMsg::CreateTask { task: tq })?,
-                    // TODO: find out how much to send here
+                    // This was checked to be enough for the actions at least once
+                    // TODO: what about the fee to pay croncat and agents?
                     funds: info.funds,
                 }),
                 id,
             );
 
             Ok(Response::new().add_submessage(msg))
+        }
+    }
+
+    #[msg(exec)]
+    pub fn remove_task(
+        &self,
+        ctx: (DepsMut, Env, MessageInfo),
+        task_id: u64,
+    ) -> Result<Response, ContractError> {
+        let (deps, _env, info) = ctx;
+
+        // only the owner (proxy) can create task
+        if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
+            Err(ContractError::Unauthorized {})
+        } else {
+            // call croncat to remove task
+            self.actions.remove(deps.storage, task_id);
+            Ok(Response::new())
         }
     }
 
@@ -133,7 +181,7 @@ impl CronKittyPlugin<'_> {
     #[msg(query)]
     pub fn action(&self, ctx: (Deps, Env), action_id: u64) -> StdResult<StoredMsgsResp> {
         let (deps, _) = ctx;
-        let msgs = self.actions.load(deps.storage, action_id)?;
-        Ok(StoredMsgsResp { msgs })
+        let (msgs, task_hash) = self.actions.load(deps.storage, action_id)?;
+        Ok(StoredMsgsResp { msgs, task_hash })
     }
 }

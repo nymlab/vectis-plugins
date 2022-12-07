@@ -5,7 +5,9 @@ pub mod multitest;
 
 #[cfg(not(feature = "library"))]
 mod entry_points {
-    use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response};
+    use cosmwasm_std::{
+        entry_point, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply, Response,
+    };
 
     use crate::contract::{ContractExecMsg, ContractQueryMsg, CronKittyPlugin, InstantiateMsg};
     use crate::error::ContractError;
@@ -46,9 +48,31 @@ mod entry_points {
         let expected_id = CONTRACT.action_id.load(deps.storage)?;
 
         if reply.id == expected_id {
+            // only reply_on_success
+            let r = reply.result.unwrap();
+            let task_hash = r
+                .events
+                .iter()
+                .find(|e| e.ty == "wasm")
+                .ok_or(ContractError::ExpectedEventNotFound)?
+                .attributes
+                .iter()
+                .find(|attr| attr.key == "task_hash")
+                .ok_or(ContractError::TaskHashNotFound)?;
+
+            CONTRACT.actions.update(
+                deps.storage,
+                expected_id,
+                |t| -> Result<(Vec<CosmosMsg>, Option<String>), ContractError> {
+                    let task = t.ok_or(ContractError::TaskHashNotFound)?;
+                    Ok((task.0, Some(task_hash.value.clone())))
+                },
+            )?;
+
             CONTRACT.action_id.update(deps.storage, |id| {
                 id.checked_add(1).ok_or(ContractError::Overflow)
             })?;
+
             Ok(Response::new())
         } else {
             Err(ContractError::InvalidReplyId)

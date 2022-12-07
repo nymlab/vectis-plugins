@@ -14,4 +14,13 @@ pub enum ContractError {
 
     #[error("InvalidReplyId")]
     InvalidReplyId,
+
+    #[error("Insufficient funds for Task")]
+    NotEnoughFundsForGas,
+
+    #[error("Expected event not found")]
+    ExpectedEventNotFound,
+
+    #[error("Task hash not found")]
+    TaskHashNotFound,
 }
