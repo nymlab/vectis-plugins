@@ -7,7 +7,10 @@ pub enum ContractError {
     Std(#[from] StdError),
 
     #[error("Unauthorized")]
-    Unauthorized {},
+    Unauthorized,
+
+    #[error("Empty Funds")]
+    EmptyFunds,
 
     #[error("Overflow")]
     Overflow,

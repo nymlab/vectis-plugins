@@ -18,8 +18,8 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cw_serde]
 pub struct StoredMsgsResp {
-    msgs: Vec<CosmosMsg>,
-    task_hash: Option<String>,
+    pub msgs: Vec<CosmosMsg>,
+    pub task_hash: Option<String>,
 }
 
 pub struct CronKittyPlugin<'a> {
@@ -72,7 +72,7 @@ impl CronKittyPlugin<'_> {
     ) -> Result<Response, ContractError> {
         let (deps, _, info) = ctx;
         if info.sender != deps.api.addr_humanize(&self.croncat.load(deps.storage)?)? {
-            Err(ContractError::Unauthorized {})
+            Err(ContractError::Unauthorized)
         } else {
             let taskx = self.actions.load(deps.storage, action_id)?;
             let owner = deps
@@ -99,7 +99,7 @@ impl CronKittyPlugin<'_> {
 
         // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
-            Err(ContractError::Unauthorized {})
+            Err(ContractError::Unauthorized)
         } else {
             // The id for croncat to call the actions in this task
             let id = self.action_id.load(deps.storage)?;
@@ -172,7 +172,7 @@ impl CronKittyPlugin<'_> {
 
         // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
-            Err(ContractError::Unauthorized {})
+            Err(ContractError::Unauthorized)
         } else {
             // call croncat to remove task
             if let (_, Some(task_hash)) = self.actions.load(deps.storage, task_id)? {
@@ -188,6 +188,39 @@ impl CronKittyPlugin<'_> {
                     task_id,
                 );
                 Ok(Response::new().add_submessage(msg))
+            } else {
+                Err(ContractError::TaskHashNotFound)
+            }
+        }
+    }
+
+    #[msg(exec)]
+    pub fn refill_task(
+        &self,
+        ctx: (DepsMut, Env, MessageInfo),
+        task_id: u64,
+    ) -> Result<Response, ContractError> {
+        let (deps, _env, info) = ctx;
+
+        if info.funds.is_empty() {
+            return Err(ContractError::EmptyFunds);
+        }
+
+        // only the owner (proxy) can create task
+        if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
+            Err(ContractError::Unauthorized)
+        } else {
+            // call croncat to remove task
+            if let (_, Some(task_hash)) = self.actions.load(deps.storage, task_id)? {
+                let msg = CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: deps
+                        .api
+                        .addr_humanize(&self.croncat.load(deps.storage)?)?
+                        .to_string(),
+                    msg: to_binary(&CCExecMsg::RefillTaskBalance { task_hash })?,
+                    funds: info.funds,
+                });
+                Ok(Response::new().add_message(msg))
             } else {
                 Err(ContractError::TaskHashNotFound)
             }
