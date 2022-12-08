@@ -1,8 +1,8 @@
 use crate::error::ContractError;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    coin, ensure, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo,
-    Response, StdResult, SubMsg, Uint128, WasmMsg,
+    coin, ensure, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event,
+    MessageInfo, Response, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_croncat_core::{
@@ -11,6 +11,7 @@ use cw_croncat_core::{
 };
 use cw_storage_plus::{Item, Map};
 use sylvia::contract;
+use vectis_wallet::ProxyExecuteMsg;
 
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -74,9 +75,17 @@ impl CronKittyPlugin<'_> {
             Err(ContractError::Unauthorized {})
         } else {
             let taskx = self.actions.load(deps.storage, action_id)?;
-            // These msgs should call the owner proxy contract
-            // Proxy contract will give permission to this plugin to call itself
-            Ok(Response::new().add_messages(taskx.0))
+            let owner = deps
+                .api
+                .addr_humanize(&self.owner.load(deps.storage)?)?
+                .into_string();
+            let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
+                contract_addr: owner.clone(),
+                msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs: taskx.0 })?,
+                funds: vec![],
+            });
+            let event = Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
+            Ok(Response::new().add_event(event).add_message(msg))
         }
     }
 
@@ -100,7 +109,7 @@ impl CronKittyPlugin<'_> {
                 &(tq.actions.iter().cloned().map(|a| a.msg).collect(), None),
             )?;
 
-            // make sure forward max gas_limit over to croncat
+            // make sure forward all gas
             let gas_limit = tq.actions.iter().try_fold(0u64, |acc, a| {
                 acc.checked_add(a.gas_limit.unwrap_or(0))
                     .ok_or(ContractError::Overflow)
@@ -143,8 +152,7 @@ impl CronKittyPlugin<'_> {
                         .addr_humanize(&self.croncat.load(deps.storage)?)?
                         .to_string(),
                     msg: to_binary(&CCExecMsg::CreateTask { task: tq })?,
-                    // This was checked to be enough for the actions at least once
-                    // TODO: what about the fee to pay croncat and agents?
+                    // TODO: https://github.com/CronCats/cw-croncat/issues/204
                     funds: info.funds,
                 }),
                 id,
@@ -167,8 +175,22 @@ impl CronKittyPlugin<'_> {
             Err(ContractError::Unauthorized {})
         } else {
             // call croncat to remove task
-            self.actions.remove(deps.storage, task_id);
-            Ok(Response::new())
+            if let (_, Some(task_hash)) = self.actions.load(deps.storage, task_id)? {
+                let msg = SubMsg::reply_on_success(
+                    CosmosMsg::Wasm(WasmMsg::Execute {
+                        contract_addr: deps
+                            .api
+                            .addr_humanize(&self.croncat.load(deps.storage)?)?
+                            .to_string(),
+                        msg: to_binary(&CCExecMsg::RemoveTask { task_hash })?,
+                        funds: vec![],
+                    }),
+                    task_id,
+                );
+                Ok(Response::new().add_submessage(msg))
+            } else {
+                Err(ContractError::TaskHashNotFound)
+            }
         }
     }
 

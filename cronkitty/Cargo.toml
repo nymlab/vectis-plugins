@@ -26,8 +26,13 @@ cw2 = "0.16"
 cw-multi-test = { version = "0.16"  }
 anyhow = { version = "1" }
 cw-utils = "0.16"
-cw-croncat-core = "0.1.3"
-cw-rules-core = "0.1.1"
+# These are not updated
+# cw-croncat-core = "0.1.3"
+# cw-rules-core = "0.1.1"
+cw-croncat-core = { path = "../../../cw-croncat/packages/cw-croncat-core" }
+cw-rules-core = { path = "../../../cw-croncat/packages/cw-rules-core" }
+vectis-wallet = {path = "../../vectis/packages/vectis"}
+
 
 [dev-dependencies]
 anyhow = "1"
