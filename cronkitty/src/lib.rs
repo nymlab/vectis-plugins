@@ -1,7 +1,9 @@
 pub mod contract;
 pub mod error;
-
 pub mod multitest;
+
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(feature = "library"))]
 mod entry_points {
