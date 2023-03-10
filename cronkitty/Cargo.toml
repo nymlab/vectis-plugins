@@ -12,6 +12,8 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 library = []
+tests = ["library", "cw-multi-test", "anyhow"]
+
 
 [dependencies]
 cosmwasm-std = { version = "1.1", features = ["staking"] }
@@ -23,14 +25,14 @@ sylvia-derive = "0.2.1"
 cw-storage-plus = "0.16"
 thiserror = { version = "1.0" }
 cw2 = "0.16.0"
-cw-multi-test = { version = "0.16"  }
-anyhow = { version = "1" }
 cw-utils = "0.16"
 croncat-sdk-core = "0.1.2"
 croncat-sdk-tasks = "0.1.2"
 croncat-sdk-agents= "0.1.2"
 croncat-sdk-manager= "0.1.2"
 croncat-sdk-factory= "0.1.2"
+anyhow = {version = "1", optional = true }
+cw-multi-test = { version = "0.16", optional = true }
 croncat-agents = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 croncat-factory = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 croncat-manager = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
@@ -42,5 +44,5 @@ vectis-wallet = {path = "../../vectis/packages/vectis"}
 anyhow = "1"
 cw-multi-test = "0.16"
 assert_matches = "1.5.0"
-vectis-contract-tests = {path = "../../vectis/packages/vectis-tests"}
+vectis-contract-tests = {git = "https://github.com/nymlab/vectis", branch = "deploy-plugin"}
 
