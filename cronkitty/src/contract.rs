@@ -56,14 +56,14 @@ impl CronKittyPlugin<'_> {
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
         self.owner.save(
             deps.storage,
-            &deps.api.addr_canonicalize(&info.sender.as_str())?,
+            &deps.api.addr_canonicalize(info.sender.as_str())?,
         )?;
         let croncat_manager = deps
             .api
-            .addr_canonicalize(&deps.api.addr_validate(&croncat_manager_addr)?.as_str())?;
+            .addr_canonicalize(deps.api.addr_validate(&croncat_manager_addr)?.as_str())?;
         let croncat_tasks = deps
             .api
-            .addr_canonicalize(&deps.api.addr_validate(&croncat_tasks_addr)?.as_str())?;
+            .addr_canonicalize(deps.api.addr_validate(&croncat_tasks_addr)?.as_str())?;
         self.croncat_manager.save(deps.storage, &croncat_manager)?;
         self.croncat_tasks.save(deps.storage, &croncat_tasks)?;
         self.action_id.save(deps.storage, &0)?;
