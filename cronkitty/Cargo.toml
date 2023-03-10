@@ -26,15 +26,15 @@ cw2 = "0.16.0"
 cw-multi-test = { version = "0.16"  }
 anyhow = { version = "1" }
 cw-utils = "0.16"
-croncat-sdk-core = "0.1.1"
-croncat-sdk-tasks = "0.1.1"
-croncat-sdk-agents= "0.1.1"
-croncat-sdk-manager= "0.1.1"
-croncat-sdk-factory= "0.1.1"
-croncat-agents = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta/split-0.0.0"}
-croncat-factory = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta/split-0.0.0"}
-croncat-manager = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta/split-0.0.0"}
-croncat-tasks = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta/split-0.0.0"}
+croncat-sdk-core = "0.1.2"
+croncat-sdk-tasks = "0.1.2"
+croncat-sdk-agents= "0.1.2"
+croncat-sdk-manager= "0.1.2"
+croncat-sdk-factory= "0.1.2"
+croncat-agents = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
+croncat-factory = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
+croncat-manager = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
+croncat-tasks = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 vectis-wallet = {path = "../../vectis/packages/vectis"}
 
 

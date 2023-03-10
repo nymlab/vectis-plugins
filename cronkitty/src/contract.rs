@@ -29,7 +29,6 @@ pub struct CronKittyPlugin<'a> {
     pub action_id: Item<'a, u64>,
     pub croncat_manager: Item<'a, CanonicalAddr>,
     pub croncat_tasks: Item<'a, CanonicalAddr>,
-    pub denom: Item<'a, String>,
 }
 
 #[contract]
@@ -43,7 +42,6 @@ impl CronKittyPlugin<'_> {
             croncat_manager: Item::new("croncat-manager"),
             // Croncat Tasks handles creating
             croncat_tasks: Item::new("croncat-tasks"),
-            denom: Item::new("denom"),
         }
     }
 
@@ -53,7 +51,6 @@ impl CronKittyPlugin<'_> {
         ctx: (DepsMut, Env, MessageInfo),
         croncat_manager_addr: String,
         croncat_tasks_addr: String,
-        denom: String,
     ) -> Result<Response, ContractError> {
         let (deps, _, info) = ctx;
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -69,7 +66,6 @@ impl CronKittyPlugin<'_> {
             .addr_canonicalize(&deps.api.addr_validate(&croncat_tasks_addr)?.as_str())?;
         self.croncat_manager.save(deps.storage, &croncat_manager)?;
         self.croncat_tasks.save(deps.storage, &croncat_tasks)?;
-        self.denom.save(deps.storage, &denom)?;
         self.action_id.save(deps.storage, &0)?;
         Ok(Response::new())
     }
@@ -115,7 +111,7 @@ impl CronKittyPlugin<'_> {
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
         } else {
-            // The id for croncat to call the actions in this task
+            // The id for croncat to call back
             let id = self.action_id.load(deps.storage)?;
             self.actions.save(
                 deps.storage,
@@ -128,7 +124,7 @@ impl CronKittyPlugin<'_> {
                 acc.checked_add(a.gas_limit.unwrap_or(0))
                     .ok_or(ContractError::Overflow)
             })?;
-            let denom = self.denom.load(deps.storage)?;
+            let denom = deps.querier.query_bonded_denom()?;
             ensure!(
                 info.funds
                     .iter()
@@ -154,7 +150,8 @@ impl CronKittyPlugin<'_> {
                 gas_limit,
             };
 
-            // We forward all the other params (so we can contribute / use to frontend code)
+            // We forward all the other params (so we can contribute to / use to frontend code from
+            // croncat)
             // The Action called is to call this plugin at the given intervals
             task.actions = vec![action];
             task.cw20 = None;

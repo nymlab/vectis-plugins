@@ -265,16 +265,16 @@ dependencies = [
 
 [[package]]
 name = "croncat-agents"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-agents 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-core 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-factory 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-manager 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-tasks 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-sdk-agents 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-factory 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-manager 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-tasks 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "cw-storage-plus 1.0.1",
  "cw-utils 0.16.0",
  "cw2 1.0.1",
@@ -284,12 +284,13 @@ dependencies = [
 
 [[package]]
 name = "croncat-factory"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-factory 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-factory 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "cw-storage-plus 1.0.1",
  "cw-utils 0.16.0",
  "cw2 1.0.1",
@@ -298,101 +299,103 @@ dependencies = [
 
 [[package]]
 name = "croncat-manager"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-agents 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-core 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-factory 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-manager 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-tasks 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-sdk-agents 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-factory 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-manager 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-tasks 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "cw-storage-plus 1.0.1",
  "cw-utils 0.16.0",
  "cw2 1.0.1",
  "cw20 0.16.0",
- "mod-sdk 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "mod-sdk 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "serde-json-wasm",
  "thiserror",
 ]
 
 [[package]]
 name = "croncat-mod-generic"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90615d0891f4814ab98adc9670feaeec3afd1d625b8340d257de2c68584abed6"
+checksum = "3b2a87cf37e6d76bd68cd83eae20aaeb90cbb3a9aeab31aab4ad08aa8567ec1a"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw2 1.0.1",
- "mod-sdk 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mod-sdk 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde-cw-value",
 ]
 
 [[package]]
 name = "croncat-mod-generic"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw2 1.0.1",
- "mod-sdk 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "mod-sdk 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "serde-cw-value",
 ]
 
 [[package]]
 name = "croncat-sdk-agents"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b3a0fb5da38f09c5aa15574c386dcf09b6a3ee0314a7c24b6e2532eb19060f6"
+checksum = "7a404ec5bc0614c43a1416ac24556595a5e197f9157a8bb5b7e9ee970cf181b7"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-core 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "thiserror",
 ]
 
 [[package]]
 name = "croncat-sdk-agents"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-core 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "serde",
  "thiserror",
 ]
 
 [[package]]
 name = "croncat-sdk-core"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "370cc4741ea1bfddd1f8872c53ef421d5db048e704afc2078021ee33fe548d6a"
+checksum = "6217a7d0cae0d3dadfc72250b710ee34ba09dd48925efb0601ade8fd3c777a94"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw20 0.16.0",
+ "thiserror",
 ]
 
 [[package]]
 name = "croncat-sdk-core"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw20 0.16.0",
+ "thiserror",
 ]
 
 [[package]]
 name = "croncat-sdk-factory"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b48891ff7179906db99da1088e74643a4ba4b17a8c65c2b8cff7c5ffe69f8f19"
+checksum = "5863205343d454535d408655970b05c5a2c6e55631665a5b9e5700de4cc0f94c"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -401,8 +404,8 @@ dependencies = [
 
 [[package]]
 name = "croncat-sdk-factory"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -411,74 +414,74 @@ dependencies = [
 
 [[package]]
 name = "croncat-sdk-manager"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b594689fd80fb2f60699f296cbfc45f0e056e6efd07fa6abda252bec54afe2f"
+checksum = "8fb7d5ea988aef428b3ed6e654142f9b6e4e432f3b6ab6ae88208ce7703eecfa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-core 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw20 0.16.0",
  "thiserror",
 ]
 
 [[package]]
 name = "croncat-sdk-manager"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-core 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "cw20 0.16.0",
  "thiserror",
 ]
 
 [[package]]
 name = "croncat-sdk-tasks"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5237642d4ef590ec6c5aefc3484d458f085ee7b09104bcb381b68b15f562292a"
+checksum = "0a4332f24bf7ad28bc04d3410ba7882950357a9e1e61b9f7a933e4e50eb8417c"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cron_schedule",
- "croncat-mod-generic 0.1.0",
- "croncat-sdk-core 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-mod-generic 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw20 0.16.0",
  "hex",
- "mod-sdk 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mod-sdk 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.10.6",
 ]
 
 [[package]]
 name = "croncat-sdk-tasks"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cron_schedule",
- "croncat-mod-generic 0.1.1",
- "croncat-sdk-core 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-mod-generic 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "cw20 0.16.0",
  "hex",
- "mod-sdk 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "mod-sdk 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "sha2 0.10.6",
 ]
 
 [[package]]
 name = "croncat-tasks"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "croncat-sdk-agents 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-core 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-factory 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-manager 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
- "croncat-sdk-tasks 0.1.1 (git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0)",
+ "croncat-sdk-agents 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-core 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-factory 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-manager 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
+ "croncat-sdk-tasks 0.1.2 (git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2)",
  "cw-storage-plus 1.0.1",
  "cw2 1.0.1",
  "cw20 0.16.0",
@@ -496,11 +499,11 @@ dependencies = [
  "croncat-agents",
  "croncat-factory",
  "croncat-manager",
- "croncat-sdk-agents 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "croncat-sdk-core 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "croncat-sdk-factory 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "croncat-sdk-manager 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "croncat-sdk-tasks 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-agents 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-factory 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-manager 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "croncat-sdk-tasks 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "croncat-tasks",
  "cw-multi-test",
  "cw-storage-plus 0.16.0",
@@ -630,7 +633,7 @@ dependencies = [
 [[package]]
 name = "cw-denom"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -641,7 +644,7 @@ dependencies = [
 [[package]]
 name = "cw-hooks"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -705,7 +708,7 @@ dependencies = [
 [[package]]
 name = "cw-paginate"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -942,7 +945,7 @@ dependencies = [
 [[package]]
 name = "cw20-stake"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1074,7 +1077,7 @@ dependencies = [
 [[package]]
 name = "dao-core"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1093,7 +1096,7 @@ dependencies = [
 [[package]]
 name = "dao-interface"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1105,7 +1108,7 @@ dependencies = [
 [[package]]
 name = "dao-macros"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "proc-macro2",
@@ -1116,7 +1119,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-approval-single"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1132,7 +1135,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-base"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1151,7 +1154,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-hooks"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1162,7 +1165,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-single"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1189,7 +1192,7 @@ dependencies = [
 [[package]]
 name = "dao-vote-hooks"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1200,7 +1203,7 @@ dependencies = [
 [[package]]
 name = "dao-voting"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1217,7 +1220,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw20-staked"
 version = "2.0.1"
-source = "git+https://github.com/nymlab/dao-contracts?rev=4d8364e#4d8364e60ad8997000d61b31b45149dd61465d02"
+source = "git+https://github.com/nymlab/dao-contracts?rev=f17b3e74e8190#f17b3e74e8190d59276235a38e1942b664965f98"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1552,9 +1555,9 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "mod-sdk"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "541f6e42c38d10ba9e2c726d911ec7f3bb7e1e9996cecec8f8bdd964f1c4a89a"
+checksum = "186ad6595e31bec4d0be886428727eaf1d0a42df1893727bf8fcae0e69b7081e"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1563,8 +1566,8 @@ dependencies = [
 
 [[package]]
 name = "mod-sdk"
-version = "0.1.1"
-source = "git+https://github.com/CronCats/cw-croncat/?branch=beta/split-0.0.0#19e8e148b77fa3a9a61cfaf7ceb7d998c921b8f6"
+version = "0.1.2"
+source = "git+https://github.com/CronCats/cw-croncat/?branch=beta-0.1.2#211b829b3c719c3e7bbfef30c7d637e2ba8ccfaa"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2175,6 +2178,7 @@ dependencies = [
  "sylvia",
  "sylvia-derive",
  "thiserror",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2192,6 +2196,7 @@ dependencies = [
  "cw3-fixed-multisig",
  "sha2 0.9.9",
  "thiserror",
+ "vectis-plugin-registry",
  "vectis-wallet",
 ]
 

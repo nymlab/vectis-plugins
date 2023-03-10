@@ -5,6 +5,13 @@ use croncat_sdk_factory::msg::{
 use croncat_sdk_tasks::msg::TasksInstantiateMsg;
 use cw_multi_test::{App, Contract, ContractWrapper, Executor};
 use vectis_contract_tests::common::common::*;
+pub const PAUSE_ADMIN: &str = "stars15434j0vvv8un4hs0sfx8avmnc7ypzg00hjyc2c5a6z352t4tjdmsj4785v";
+// These addresses need to be well formed as balances are queried in croncat contract
+pub const AGENT_BENEFICIARY: &str = "wasm1ucl9dulgww2trng0dmunj348vxneufu5nk4yy4";
+pub const AGENT0: &str = "wasm1ucl9dulgww2trng0dmunj348vxneufu5n11yy4";
+/// This is used for staking queries
+/// https://github.com/CosmWasm/cosmwasm/blob/32f308a1a56ae5b8278947891306f7a374c3df94/packages/vm/src/environment.rs#L383
+pub const DENOM: &str = "TOKEN";
 
 pub(crate) fn croncat_tasks_contract() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
@@ -95,14 +102,13 @@ pub(crate) fn init_tasks(app: &mut App, msg: &TasksInstantiateMsg, factory_addr:
 pub(crate) fn init_manager(app: &mut App, factory_addr: &Addr) -> Addr {
     let code_id = app.store_code(croncat_manager_contract());
     let msg = croncat_manager::msg::InstantiateMsg {
-        denom: "ucosm".to_owned(),
         version: Some("0.1".to_owned()),
         croncat_tasks_key: ("tasks".to_owned(), [0, 1]),
         croncat_agents_key: ("agents".to_owned(), [0, 1]),
-        owner_addr: Some("deployer".to_owned()),
         gas_price: None,
         treasury_addr: None,
         cw20_whitelist: None,
+        pause_admin: Addr::unchecked(PAUSE_ADMIN),
     };
     let module_instantiate_info = ModuleInstantiateInfo {
         code_id,
@@ -143,12 +149,14 @@ pub(crate) fn init_agents(app: &mut App, factory_addr: &Addr) -> Addr {
         version: Some("0.1".to_owned()),
         croncat_manager_key: ("manager".to_string(), [0, 1]),
         croncat_tasks_key: ("tasks".to_string(), [0, 1]),
-        owner_addr: None,
         agent_nomination_duration: None,
         min_tasks_per_agent: None,
-        min_coin_for_agent_registration: None,
         agents_eject_threshold: None,
         min_active_agent_count: None,
+        pause_admin: Addr::unchecked(PAUSE_ADMIN),
+        public_registration: true,
+        allowed_agents: None,
+        min_coins_for_agent_registration: None,
     };
     let module_instantiate_info = ModuleInstantiateInfo {
         code_id,
@@ -186,7 +194,6 @@ pub(crate) fn default_instantiate_msg() -> TasksInstantiateMsg {
     TasksInstantiateMsg {
         chain_name: "atom".to_owned(),
         version: Some("0.1".to_owned()),
-        owner_addr: None,
         croncat_manager_key: ("manager".to_owned(), [0, 1]),
         croncat_agents_key: ("agents".to_owned(), [0, 1]),
         slot_granularity_time: None,
@@ -194,5 +201,6 @@ pub(crate) fn default_instantiate_msg() -> TasksInstantiateMsg {
         gas_action_fee: None,
         gas_query_fee: None,
         gas_limit: None,
+        pause_admin: Addr::unchecked(PAUSE_ADMIN),
     }
 }
