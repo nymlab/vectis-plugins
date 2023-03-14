@@ -1,9 +1,8 @@
 use crate::error::ContractError;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{
-    coin, ensure, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event,
-    MessageInfo, Response, StdResult, SubMsg, Uint128, WasmMsg,
-};
+use cosmwasm_std::{coin, ensure, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event, MessageInfo, Response, StdResult, SubMsg, Uint128, WasmMsg, Addr};
+use croncat_sdk_factory::msg::ContractMetadataResponse;
+use croncat_sdk_factory::msg::FactoryQueryMsg::LatestContract;
 use croncat_sdk_manager::msg::ManagerExecuteMsg as CCManagerExecMsg;
 use croncat_sdk_tasks::{
     msg::TasksExecuteMsg as CCTaskExecMsg,
@@ -13,6 +12,7 @@ use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 use sylvia::contract;
 use vectis_wallet::ProxyExecuteMsg;
+use crate::error::ContractError::NoCronCatContract;
 
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -49,8 +49,7 @@ impl CronKittyPlugin<'_> {
     pub fn instantiate(
         &self,
         ctx: (DepsMut, Env, MessageInfo),
-        croncat_manager_addr: String,
-        croncat_tasks_addr: String,
+        croncat_factory_addr: String,
     ) -> Result<Response, ContractError> {
         let (deps, _, info) = ctx;
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -58,15 +57,22 @@ impl CronKittyPlugin<'_> {
             deps.storage,
             &deps.api.addr_canonicalize(info.sender.as_str())?,
         )?;
-        let croncat_manager = deps
-            .api
-            .addr_canonicalize(deps.api.addr_validate(&croncat_manager_addr)?.as_str())?;
-        let croncat_tasks = deps
-            .api
-            .addr_canonicalize(deps.api.addr_validate(&croncat_tasks_addr)?.as_str())?;
+
+        // Get CronCat Manager and Tasks contract addresses
+        // by querying the Factory for the latest version
+        let tasks_name = String::from("tasks");
+        let manager_name = String::from("manager");
+
+        // Validate CronCat Factory address
+        let croncat_factory_addr = deps.api.addr_validate(&croncat_factory_addr)?;
+
+        let croncat_tasks = query_croncat_factory_for_contract(&deps, &croncat_factory_addr, tasks_name)?;
+        let croncat_manager = query_croncat_factory_for_contract(&deps, &croncat_factory_addr, manager_name)?;
+
         self.croncat_manager.save(deps.storage, &croncat_manager)?;
         self.croncat_tasks.save(deps.storage, &croncat_tasks)?;
         self.action_id.save(deps.storage, &0)?;
+
         Ok(Response::new())
     }
 
@@ -258,5 +264,37 @@ impl CronKittyPlugin<'_> {
     fn migrate(&self, _ctx: (DepsMut, Env)) -> Result<Response, ContractError> {
         // Not used but required for impl for multitest
         Ok(Response::default())
+    }
+}
+
+/// Takes a CronCat contract name, queries the factory for the latest contract address.
+/// Returns a result with the canonical, validated address, or an error.
+fn query_croncat_factory_for_contract(deps: &DepsMut, croncat_factory_address: &Addr, name: String) -> Result<CanonicalAddr, ContractError> {
+    let query_factory_msg = LatestContract {
+        contract_name: name.clone(),
+    };
+    let latest_contract_res: ContractMetadataResponse = deps.querier.query_wasm_smart(croncat_factory_address, &query_factory_msg)?;
+
+    // Check validity of result
+    if latest_contract_res.metadata.is_none() {
+        return Err(NoCronCatContract {
+            name: name.clone(),
+        })
+    }
+
+    let contract_address = latest_contract_res.metadata.unwrap().contract_addr;
+
+    // deps.api.addr_canonicalize()
+    let canonical_res = deps
+      .api
+      .addr_canonicalize(deps.api.addr_validate(&contract_address.as_str())?.as_str());
+
+    if canonical_res.is_ok() {
+        Ok(canonical_res.unwrap())
+        // Ok(canonical_res)
+    } else {
+        Err(NoCronCatContract {
+            name,
+        })
     }
 }
