@@ -79,14 +79,12 @@ fn cronkitty_plugin_works() {
         .execute_contract(
             suite.ds.controller.clone(),
             suite.proxy.clone(),
-            &ProxyExecuteMsg::InstantiatePlugin::<Empty> {
-                src: vectis_wallet::PluginSource::CodeId(cronkitty_code_id),
-                instantiate_msg: to_binary(&CronKittyInstMsg {
-                    croncat_manager_addr: manager_addr.to_string(),
-                    croncat_tasks_addr: tasks_addr.to_string(),
-                })
-                .unwrap(),
-                plugin_params: PluginParams { grantor: false },
+            &ProxyExecuteMsg::<Empty>::InstantiatePlugin {
+              code_id: 0,
+              instantiate_msg: to_binary(&CronKittyInstMsg {
+                    croncat_factory_addr: factory_addr.to_string(),
+                  }).unwrap(),
+              plugin_params: PluginParams { grantor: false },
                 label: "cronkitty-plugin".into(),
             },
             &[coin(10000, DENOM)],
