@@ -51,7 +51,6 @@ pub(crate) fn croncat_agents_contract() -> Box<dyn Contract<Empty>> {
     Box::new(contract)
 }
 
-// TODO: update metadata
 pub(crate) fn init_factory(app: &mut App) -> Addr {
     let code_id = app.store_code(croncat_factory_contract());
     app.instantiate_contract(

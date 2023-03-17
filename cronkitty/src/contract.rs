@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::error::ContractError::NoCronCatContract;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
     coin, ensure, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event,
@@ -19,7 +18,7 @@ use vectis_wallet::ProxyExecuteMsg;
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const TASK: &str = "task";
+const TASK: &str = "tasks";
 const MANAGER: &str = "manager";
 
 #[cw_serde]
