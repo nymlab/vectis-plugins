@@ -26,4 +26,9 @@ pub enum ContractError {
 
     #[error("Task hash not found")]
     TaskHashNotFound,
+
+    #[error("Did not find CronCat contract {name} from factory")]
+    NoCronCatContract {
+        name: String
+    },
 }
