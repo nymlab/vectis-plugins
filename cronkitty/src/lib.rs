@@ -48,7 +48,7 @@ mod entry_points {
         // NOTE: Error returned in `reply` is equivalent to contract error, all states revert,
         // specifically, the TOTAL_CREATED incremented in `create_wallet` will revert
 
-        if let (_, Some(task_hash)) = CONTRACT.actions.load(deps.storage, reply.id)? {
+        if let (_, _, _, Some(task_hash)) = CONTRACT.actions.load(deps.storage, reply.id)? {
             // This means task_hash was stored, i.e. replied from remove_task
             CONTRACT.actions.remove(deps.storage, reply.id);
             Ok(Response::new().add_event(
@@ -57,7 +57,7 @@ mod entry_points {
                     .add_attribute("Task Hash", task_hash),
             ))
         } else {
-            let expected_id = CONTRACT.action_id.load(deps.storage)?;
+            let expected_id = CONTRACT.next_action_id.load(deps.storage)?;
             if reply.id == expected_id {
                 // only reply_on_success
                 let r = reply.result.unwrap();
@@ -74,13 +74,17 @@ mod entry_points {
                 CONTRACT.actions.update(
                     deps.storage,
                     expected_id,
-                    |t| -> Result<(Vec<CosmosMsg>, Option<String>), ContractError> {
-                        let task = t.ok_or(ContractError::TaskHashNotFound)?;
-                        Ok((task.0, Some(task_hash.value.clone())))
+                    |t| -> Result<
+                        ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>),
+                        ContractError,
+                    > {
+                        let mut task = t.ok_or(ContractError::TaskHashNotFound)?;
+                        task.3 = Some(task_hash.value.clone());
+                        Ok(task)
                     },
                 )?;
 
-                CONTRACT.action_id.update(deps.storage, |id| {
+                CONTRACT.next_action_id.update(deps.storage, |id| {
                     id.checked_add(1).ok_or(ContractError::Overflow)
                 })?;
 

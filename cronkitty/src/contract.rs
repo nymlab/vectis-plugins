@@ -1,8 +1,11 @@
 use crate::error::ContractError;
+use crate::error::ContractError::NoCronCatContract;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{coin, ensure, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event, MessageInfo, Response, StdResult, SubMsg, Uint128, WasmMsg, Addr};
-use croncat_sdk_factory::msg::ContractMetadataResponse;
-use croncat_sdk_factory::msg::FactoryQueryMsg::LatestContract;
+use cosmwasm_std::{
+    coin, ensure, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event,
+    MessageInfo, Response, StdResult, SubMsg, Uint128, WasmMsg,
+};
+use croncat_sdk_factory::state::CONTRACT_ADDRS;
 use croncat_sdk_manager::msg::ManagerExecuteMsg as CCManagerExecMsg;
 use croncat_sdk_tasks::{
     msg::TasksExecuteMsg as CCTaskExecMsg,
@@ -12,23 +15,30 @@ use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 use sylvia::contract;
 use vectis_wallet::ProxyExecuteMsg;
-use crate::error::ContractError::NoCronCatContract;
 
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const TASK: &str = "task";
+const MANAGER: &str = "manager";
 
 #[cw_serde]
 pub struct CronKittyActionResp {
     pub msgs: Vec<CosmosMsg>,
     pub task_hash: Option<String>,
+    pub task_addr: Addr,
+    pub manager_addr: Addr,
 }
 
 pub struct CronKittyPlugin<'a> {
-    pub actions: Map<'a, u64, (Vec<CosmosMsg>, Option<String>)>,
+    // Map <action_id, (task_version, mg_version, msg_for_proxy_to_exec, task_hash_on_croncat)>
+    pub actions: Map<'a, u64, ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>)>,
     pub owner: Item<'a, CanonicalAddr>,
-    pub action_id: Item<'a, u64>,
-    pub croncat_manager: Item<'a, CanonicalAddr>,
-    pub croncat_tasks: Item<'a, CanonicalAddr>,
+    pub next_action_id: Item<'a, u64>,
+    pub croncat_factory: Item<'a, CanonicalAddr>,
+    // Latest contract name to the version
+    // perhaps can also move this to croncat_factory_sdk::state?
+    pub latest_versions: Map<'a, &'a str, [u8; 2]>,
 }
 
 #[contract]
@@ -37,11 +47,9 @@ impl CronKittyPlugin<'_> {
         Self {
             actions: Map::new("actions"),
             owner: Item::new("owner"),
-            action_id: Item::new("id"),
-            // Croncat Manager calls for execute
-            croncat_manager: Item::new("croncat-manager"),
-            // Croncat Tasks handles creating
-            croncat_tasks: Item::new("croncat-tasks"),
+            next_action_id: Item::new("id"),
+            croncat_factory: Item::new("croncat-manager"),
+            latest_versions: Map::new("latest_versions"),
         }
     }
 
@@ -58,20 +66,13 @@ impl CronKittyPlugin<'_> {
             &deps.api.addr_canonicalize(info.sender.as_str())?,
         )?;
 
-        // Get CronCat Manager and Tasks contract addresses
-        // by querying the Factory for the latest version
-        let tasks_name = String::from("tasks");
-        let manager_name = String::from("manager");
-
         // Validate CronCat Factory address
-        let croncat_factory_addr = deps.api.addr_validate(&croncat_factory_addr)?;
+        let croncat_factory = deps
+            .api
+            .addr_canonicalize(deps.api.addr_validate(&croncat_factory_addr)?.as_str())?;
 
-        let croncat_tasks = query_croncat_factory_for_contract(&deps, &croncat_factory_addr, tasks_name)?;
-        let croncat_manager = query_croncat_factory_for_contract(&deps, &croncat_factory_addr, manager_name)?;
-
-        self.croncat_manager.save(deps.storage, &croncat_manager)?;
-        self.croncat_tasks.save(deps.storage, &croncat_tasks)?;
-        self.action_id.save(deps.storage, &0)?;
+        self.croncat_factory.save(deps.storage, &croncat_factory)?;
+        self.next_action_id.save(deps.storage, &0)?;
 
         Ok(Response::new())
     }
@@ -83,21 +84,18 @@ impl CronKittyPlugin<'_> {
         action_id: u64,
     ) -> Result<Response, ContractError> {
         let (deps, _, info) = ctx;
-        if info.sender
-            != deps
-                .api
-                .addr_humanize(&self.croncat_manager.load(deps.storage)?)?
-        {
+        let (_, mgr_version, msgs, _) = self.actions.load(deps.storage, action_id)?;
+        let mgt_addr = self.query_contract_addr(&deps.as_ref(), &mgr_version, MANAGER)?;
+        if info.sender != mgt_addr {
             Err(ContractError::Unauthorized)
         } else {
-            let taskx = self.actions.load(deps.storage, action_id)?;
             let owner = deps
                 .api
                 .addr_humanize(&self.owner.load(deps.storage)?)?
                 .into_string();
             let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
                 contract_addr: owner.clone(),
-                msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs: taskx.0 })?,
+                msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
                 funds: vec![],
             });
             let event = Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
@@ -117,12 +115,23 @@ impl CronKittyPlugin<'_> {
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
         } else {
+            let task_contract_version =
+                self.query_latest_version_croncat_contract(&deps.as_ref(), TASK)?;
+            let mgr_contract_version =
+                self.query_latest_version_croncat_contract(&deps.as_ref(), MANAGER)?;
+            let task_contract_addr =
+                self.query_contract_addr(&deps.as_ref(), &task_contract_version, TASK)?;
             // The id for croncat to call back
-            let id = self.action_id.load(deps.storage)?;
+            let id = self.next_action_id.load(deps.storage)?;
             self.actions.save(
                 deps.storage,
                 id,
-                &(task.actions.iter().cloned().map(|a| a.msg).collect(), None),
+                &(
+                    task_contract_version,
+                    mgr_contract_version,
+                    task.actions.iter().cloned().map(|a| a.msg).collect(),
+                    None,
+                ),
             )?;
 
             // make sure forward all gas
@@ -164,10 +173,7 @@ impl CronKittyPlugin<'_> {
 
             let msg = SubMsg::reply_on_success(
                 CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: deps
-                        .api
-                        .addr_humanize(&self.croncat_tasks.load(deps.storage)?)?
-                        .to_string(),
+                    contract_addr: task_contract_addr.to_string(),
                     msg: to_binary(&CCTaskExecMsg::CreateTask {
                         task: Box::new(task),
                     })?,
@@ -193,14 +199,14 @@ impl CronKittyPlugin<'_> {
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
         } else {
-            // call croncat to remove task
-            if let (_, Some(task_hash)) = self.actions.load(deps.storage, task_id)? {
+            if let (task_contract_version, _, _, Some(task_hash)) =
+                self.actions.load(deps.storage, task_id)?
+            {
+                let task =
+                    self.query_contract_addr(&deps.as_ref(), &task_contract_version, TASK)?;
                 let msg = SubMsg::reply_on_success(
                     CosmosMsg::Wasm(WasmMsg::Execute {
-                        contract_addr: deps
-                            .api
-                            .addr_humanize(&self.croncat_tasks.load(deps.storage)?)?
-                            .to_string(),
+                        contract_addr: task.to_string(),
                         msg: to_binary(&CCTaskExecMsg::RemoveTask { task_hash })?,
                         funds: vec![],
                     }),
@@ -229,13 +235,14 @@ impl CronKittyPlugin<'_> {
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
         } else {
-            // call croncat to remove task
-            if let (_, Some(task_hash)) = self.actions.load(deps.storage, task_id)? {
+            // call croncat to refill task
+            if let (_, mgr_contract_version, _, Some(task_hash)) =
+                self.actions.load(deps.storage, task_id)?
+            {
+                let manager =
+                    self.query_contract_addr(&deps.as_ref(), &mgr_contract_version, MANAGER)?;
                 let msg = CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: deps
-                        .api
-                        .addr_humanize(&self.croncat_manager.load(deps.storage)?)?
-                        .to_string(),
+                    contract_addr: manager.to_string(),
                     msg: to_binary(&CCManagerExecMsg::RefillTaskBalance { task_hash })?,
                     funds: info.funds,
                 });
@@ -249,15 +256,27 @@ impl CronKittyPlugin<'_> {
     #[msg(query)]
     pub fn action_id(&self, ctx: (Deps, Env)) -> StdResult<u64> {
         let (deps, _) = ctx;
-        self.action_id.load(deps.storage)
+        self.next_action_id.load(deps.storage)
     }
 
     // These are the id that stores the actual cosmos messages
     #[msg(query)]
-    pub fn action(&self, ctx: (Deps, Env), action_id: u64) -> StdResult<CronKittyActionResp> {
+    pub fn action(
+        &self,
+        ctx: (Deps, Env),
+        action_id: u64,
+    ) -> Result<CronKittyActionResp, ContractError> {
         let (deps, _) = ctx;
-        let (msgs, task_hash) = self.actions.load(deps.storage, action_id)?;
-        Ok(CronKittyActionResp { msgs, task_hash })
+        let (task_version, mgr_version, msgs, task_hash) =
+            self.actions.load(deps.storage, action_id)?;
+        let task_addr = self.query_contract_addr(&deps, &task_version, TASK)?;
+        let manager_addr = self.query_contract_addr(&deps, &mgr_version, MANAGER)?;
+        Ok(CronKittyActionResp {
+            msgs,
+            task_hash,
+            task_addr,
+            manager_addr,
+        })
     }
 
     #[msg(migrate)]
@@ -265,36 +284,42 @@ impl CronKittyPlugin<'_> {
         // Not used but required for impl for multitest
         Ok(Response::default())
     }
-}
 
-/// Takes a CronCat contract name, queries the factory for the latest contract address.
-/// Returns a result with the canonical, validated address, or an error.
-fn query_croncat_factory_for_contract(deps: &DepsMut, croncat_factory_address: &Addr, name: String) -> Result<CanonicalAddr, ContractError> {
-    let query_factory_msg = LatestContract {
-        contract_name: name.clone(),
-    };
-    let latest_contract_res: ContractMetadataResponse = deps.querier.query_wasm_smart(croncat_factory_address, &query_factory_msg)?;
+    fn query_latest_version_croncat_contract(
+        &self,
+        deps: &Deps,
+        name: &str,
+    ) -> Result<[u8; 2], ContractError> {
+        let cc_factory = deps
+            .api
+            .addr_humanize(&self.croncat_factory.load(deps.storage)?)?;
 
-    // Check validity of result
-    if latest_contract_res.metadata.is_none() {
-        return Err(NoCronCatContract {
-            name: name.clone(),
-        })
+        self.latest_versions
+            .query(&deps.querier, cc_factory, &name)
+            .transpose()
+            .ok_or_else(|| ContractError::NoCronCatVersion {
+                name: name.to_string(),
+            })?
+            .map_err(|e| e.into())
     }
 
-    let contract_address = latest_contract_res.metadata.unwrap().contract_addr;
-
-    // deps.api.addr_canonicalize()
-    let canonical_res = deps
-      .api
-      .addr_canonicalize(deps.api.addr_validate(&contract_address.as_str())?.as_str());
-
-    if canonical_res.is_ok() {
-        Ok(canonical_res.unwrap())
-        // Ok(canonical_res)
-    } else {
-        Err(NoCronCatContract {
-            name,
-        })
+    /// Takes a CronCat contract name, queries the factory for the latest contract address.
+    /// Returns a result with the latest version and the addr, or an error.
+    fn query_contract_addr(
+        &self,
+        deps: &Deps,
+        version: &[u8; 2],
+        name: &str,
+    ) -> Result<Addr, ContractError> {
+        CONTRACT_ADDRS
+            .query(
+                &deps.querier,
+                deps.api
+                    .addr_humanize(&self.croncat_factory.load(deps.storage)?)?,
+                (name, version),
+            )?
+            .ok_or_else(|| ContractError::NoCronCatContract {
+                name: name.to_string(),
+            })
     }
 }

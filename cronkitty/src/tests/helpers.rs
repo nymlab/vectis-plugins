@@ -50,6 +50,8 @@ pub(crate) fn croncat_agents_contract() -> Box<dyn Contract<Empty>> {
     );
     Box::new(contract)
 }
+
+// TODO: update metadata
 pub(crate) fn init_factory(app: &mut App) -> Addr {
     let code_id = app.store_code(croncat_factory_contract());
     app.instantiate_contract(
@@ -190,6 +192,7 @@ pub(crate) fn init_agents(app: &mut App, factory_addr: &Addr) -> Addr {
         .unwrap();
     metadata.metadata.unwrap().contract_addr
 }
+
 pub(crate) fn default_instantiate_msg() -> TasksInstantiateMsg {
     TasksInstantiateMsg {
         chain_name: "atom".to_owned(),
