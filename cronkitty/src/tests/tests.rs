@@ -18,7 +18,7 @@ use croncat_sdk_tasks::{
 use cw_multi_test::Executor;
 use vectis_contract_tests::common::common::proxy_exec;
 use vectis_contract_tests::common::plugins_common::PluginsSuite;
-use vectis_wallet::{PluginParams, ProxyExecuteMsg};
+use vectis_wallet::{PluginParams, PluginSource, ProxyExecuteMsg};
 
 // TODO: add registry as cronkitty is trusted
 //
@@ -80,11 +80,12 @@ fn cronkitty_plugin_works() {
             suite.ds.controller.clone(),
             suite.proxy.clone(),
             &ProxyExecuteMsg::<Empty>::InstantiatePlugin {
-              code_id: 0,
-              instantiate_msg: to_binary(&CronKittyInstMsg {
+                src: PluginSource::CodeId(cronkitty_code_id),
+                instantiate_msg: to_binary(&CronKittyInstMsg {
                     croncat_factory_addr: factory_addr.to_string(),
-                  }).unwrap(),
-              plugin_params: PluginParams { grantor: false },
+                })
+                .unwrap(),
+                plugin_params: PluginParams { grantor: false },
                 label: "cronkitty-plugin".into(),
             },
             &[coin(10000, DENOM)],
