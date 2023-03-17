@@ -37,7 +37,7 @@ croncat-agents = {git = "https://github.com/CronCats/cw-croncat/", branch = "bet
 croncat-factory = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 croncat-manager = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 croncat-tasks = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
-vectis-wallet = {path = "../../vectis/packages/vectis"}
+vectis-wallet = {git = "https://github.com/nymlab/vectis", branch = "deploy-plugin"}
 
 
 [dev-dependencies]

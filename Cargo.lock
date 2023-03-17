@@ -515,7 +515,7 @@ dependencies = [
  "sylvia-derive",
  "thiserror",
  "vectis-contract-tests",
- "vectis-wallet 0.1.0",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2115,7 +2115,7 @@ dependencies = [
  "vectis-proxy",
  "vectis-remote-factory",
  "vectis-remote-tunnel",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2129,7 +2129,7 @@ dependencies = [
  "cw-utils 0.16.0",
  "cw2 0.16.0",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2146,7 +2146,7 @@ dependencies = [
  "derivative",
  "thiserror",
  "vectis-govec",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2164,7 +2164,7 @@ dependencies = [
  "cw20-stake 2.0.1",
  "derivative",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2183,7 +2183,7 @@ dependencies = [
  "sylvia",
  "sylvia-derive",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2203,7 +2203,7 @@ dependencies = [
  "sha2 0.9.9",
  "thiserror",
  "vectis-plugin-registry",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2219,7 +2219,7 @@ dependencies = [
  "cw20 0.16.0",
  "derivative",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
+ "vectis-wallet",
 ]
 
 [[package]]
@@ -2232,30 +2232,7 @@ dependencies = [
  "cw-storage-plus 0.16.0",
  "cw-utils 0.16.0",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
-]
-
-[[package]]
-name = "vectis-wallet"
-version = "0.1.0"
-dependencies = [
- "bech32",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 0.16.0",
- "cw-utils 0.16.0",
- "cw1",
- "cw2 0.16.0",
- "cw20 0.16.0",
- "cw20-stake 2.0.1",
- "dao-pre-propose-approval-single",
- "dao-proposal-single",
- "derivative",
- "hex",
- "primitive-types",
- "ripemd160",
- "sha2 0.9.9",
- "thiserror",
+ "vectis-wallet",
 ]
 
 [[package]]
