@@ -16,3 +16,9 @@ The Croncat system is comprehensive, for the sake of understanding the code, you
 
 - Croncat Manager calls for execute
 - Croncat Tasks handles creating
+
+In CronKitty, we create a `action_id` that is stored with the desired `CosmosMsgs` to be executed,
+along with some metadata to keep track of the versioning of the Croncat contracts.
+
+The actual task created on Croncat is for the agents to call the `execute` entry point in the Cronkitty contract,
+who will then call the Vectis Account with the desired `CosmosMsgs`.

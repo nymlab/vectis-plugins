@@ -515,7 +515,7 @@ dependencies = [
  "sylvia-derive",
  "thiserror",
  "vectis-contract-tests",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?branch=deploy-plugin)",
 ]
 
 [[package]]
@@ -2082,7 +2082,7 @@ checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
 [[package]]
 name = "vectis-contract-tests"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -2115,13 +2115,13 @@ dependencies = [
  "vectis-proxy",
  "vectis-remote-factory",
  "vectis-remote-tunnel",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-dao-tunnel"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2129,13 +2129,13 @@ dependencies = [
  "cw-utils 0.16.0",
  "cw2 0.16.0",
  "thiserror",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-factory"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 0.16.0",
@@ -2146,13 +2146,13 @@ dependencies = [
  "derivative",
  "thiserror",
  "vectis-govec",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-govec"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2164,13 +2164,13 @@ dependencies = [
  "cw20-stake 2.0.1",
  "derivative",
  "thiserror",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-plugin-registry"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
@@ -2183,13 +2183,13 @@ dependencies = [
  "sylvia",
  "sylvia-derive",
  "thiserror",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-proxy"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2203,13 +2203,13 @@ dependencies = [
  "sha2 0.9.9",
  "thiserror",
  "vectis-plugin-registry",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-remote-factory"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 0.16.0",
@@ -2219,26 +2219,50 @@ dependencies = [
  "cw20 0.16.0",
  "derivative",
  "thiserror",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-remote-tunnel"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 0.16.0",
  "cw-utils 0.16.0",
  "thiserror",
- "vectis-wallet",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=4f7672f)",
 ]
 
 [[package]]
 name = "vectis-wallet"
 version = "0.1.0"
 source = "git+https://github.com/nymlab/vectis?branch=deploy-plugin#0856c000ccf05d6f59bbcb7e9b163241b2a89957"
+dependencies = [
+ "bech32",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 0.16.0",
+ "cw-utils 0.16.0",
+ "cw1",
+ "cw2 0.16.0",
+ "cw20 0.16.0",
+ "cw20-stake 2.0.1",
+ "dao-pre-propose-approval-single",
+ "dao-proposal-single",
+ "derivative",
+ "hex",
+ "primitive-types",
+ "ripemd160",
+ "sha2 0.9.9",
+ "thiserror",
+]
+
+[[package]]
+name = "vectis-wallet"
+version = "0.1.0"
+source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
 dependencies = [
  "bech32",
  "cosmwasm-schema",
