@@ -1,1 +1,3 @@
 **/target/
+.env
+.keyring_file*

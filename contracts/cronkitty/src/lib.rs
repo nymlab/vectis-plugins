@@ -1,8 +1,8 @@
 pub mod contract;
 pub mod error;
-#[cfg(any(test, features = "tests"))]
-pub mod multitest;
 
+#[cfg(test)]
+pub mod multitest;
 #[cfg(test)]
 mod tests;
 

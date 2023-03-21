@@ -1,3 +1,15 @@
 [workspace]
-members = [ "cronkitty" ]
+members = [ "contracts/cronkitty" ]
+
+[profile.release.package.cronkitty]
+codegen-units = 1
+incremental = false
+
+[profile.release]
+rpath = false
+lto = true
+overflow-checks = true
+opt-level = 3
+debug = false
+debug-assertions = false
 
