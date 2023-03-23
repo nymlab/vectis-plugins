@@ -514,6 +514,7 @@ dependencies = [
  "sylvia-derive",
  "thiserror",
  "vectis-contract-tests",
+ "vectis-plugin-registry",
  "vectis-wallet",
 ]
 
@@ -2083,7 +2084,7 @@ checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
 [[package]]
 name = "vectis-contract-tests"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -2122,7 +2123,7 @@ dependencies = [
 [[package]]
 name = "vectis-dao-tunnel"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2136,7 +2137,7 @@ dependencies = [
 [[package]]
 name = "vectis-factory"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 0.16.0",
@@ -2153,7 +2154,7 @@ dependencies = [
 [[package]]
 name = "vectis-govec"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2171,15 +2172,15 @@ dependencies = [
 [[package]]
 name = "vectis-plugin-registry"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
  "cw-storage-plus 0.16.0",
- "cw-utils 1.0.1",
- "cw2 1.0.1",
+ "cw-utils 0.16.0",
+ "cw2 0.16.0",
  "serde",
  "sylvia",
  "sylvia-derive",
@@ -2190,7 +2191,7 @@ dependencies = [
 [[package]]
 name = "vectis-proxy"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2210,7 +2211,7 @@ dependencies = [
 [[package]]
 name = "vectis-remote-factory"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 0.16.0",
@@ -2226,7 +2227,7 @@ dependencies = [
 [[package]]
 name = "vectis-remote-tunnel"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2239,7 +2240,7 @@ dependencies = [
 [[package]]
 name = "vectis-wallet"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=4f7672f#4f7672f1b47247ba180c95b0346dbeb41bfe652e"
+source = "git+https://github.com/nymlab/vectis?rev=30c0b069d7#30c0b069d71d4cbcbc3bd30efb65b75413d9046b"
 dependencies = [
  "bech32",
  "cosmwasm-schema",

@@ -1,1 +1,1 @@
-6c988515abfb155967b8aec10e449a6645e54ed05eaeedc0066a8a07e3161265  target/wasm32-unknown-unknown/release/cronkitty.wasm
+1193a708cbacfb7fa83d6d352ee26f76c379df527a518bf88a8a89f4d24c2052  target/wasm32-unknown-unknown/release/cronkitty.wasm

@@ -6,7 +6,6 @@ pub mod multitest;
 #[cfg(test)]
 mod tests;
 
-#[cfg(not(feature = "library"))]
 mod entry_points {
     use cosmwasm_std::{
         entry_point, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply, Response,
@@ -43,7 +42,7 @@ mod entry_points {
     }
 
     /// reply hooks handles replies from proxy wallet instantiation
-    #[cfg_attr(not(feature = "library"), entry_point)]
+    #[entry_point]
     pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
         // NOTE: Error returned in `reply` is equivalent to contract error, all states revert,
         // specifically, the TOTAL_CREATED incremented in `create_wallet` will revert
@@ -60,6 +59,7 @@ mod entry_points {
             let expected_id = CONTRACT.next_action_id.load(deps.storage)?;
             if reply.id == expected_id {
                 // only reply_on_success
+                // TODO: update to use data
                 let r = reply.result.unwrap();
                 let task_hash = r
                     .events

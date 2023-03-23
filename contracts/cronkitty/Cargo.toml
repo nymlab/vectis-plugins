@@ -29,14 +29,18 @@ croncat-sdk-tasks = "0.1.2"
 croncat-sdk-agents= "0.1.2"
 croncat-sdk-manager= "0.1.2"
 croncat-sdk-factory= "0.1.2"
-vectis-wallet = {git = "https://github.com/nymlab/vectis", rev = "4f7672f"}
+vectis-wallet = {git = "https://github.com/nymlab/vectis", rev = "30c0b069d7"}
+# vectis-wallet = { path = "../../../vectis/packages/vectis" }
 
 
 [dev-dependencies]
 anyhow = "1"
 cw-multi-test = "0.16"
 assert_matches = "1.5.0"
-vectis-contract-tests = {git = "https://github.com/nymlab/vectis", rev = "4f7672f"}
+vectis-plugin-registry = {git = "https://github.com/nymlab/vectis", rev = "30c0b069d7"}
+vectis-contract-tests = {git = "https://github.com/nymlab/vectis", rev = "30c0b069d7"}
+# vectis-plugin-registry = { path = "../../../vectis/contracts/plugin_registry" }
+# vectis-contract-tests = { path = "../../../vectis/packages/vectis-tests" }
 croncat-agents = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 croncat-factory = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}
 croncat-manager = {git = "https://github.com/CronCats/cw-croncat/", branch = "beta-0.1.2"}

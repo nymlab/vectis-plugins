@@ -57,12 +57,13 @@ impl CronKittyPlugin<'_> {
         &self,
         ctx: (DepsMut, Env, MessageInfo),
         croncat_factory_addr: String,
+        vectis_account_addr: String,
     ) -> Result<Response, ContractError> {
-        let (deps, _, info) = ctx;
+        let (deps, _, _) = ctx;
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
         self.owner.save(
             deps.storage,
-            &deps.api.addr_canonicalize(info.sender.as_str())?,
+            &deps.api.addr_canonicalize(&vectis_account_addr)?,
         )?;
 
         // Validate CronCat Factory address
@@ -88,6 +89,7 @@ impl CronKittyPlugin<'_> {
         if info.sender != mgt_addr {
             Err(ContractError::Unauthorized)
         } else {
+            // TODO: check latest manager taskhash to ensure it is one we created
             let owner = deps
                 .api
                 .addr_humanize(&self.owner.load(deps.storage)?)?

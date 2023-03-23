@@ -13,11 +13,11 @@ if ! junod keys show deployer --keyring-backend=test; then
 fi
 
 #  Check we have one runnint to use a local Juno
-if [[ "$CHAIN_ID" == "juno_local" ]]; then
+if [[ "$CHAIN_ID" == "juno-local" ]]; then
 
   echo "👀 Checking if you have have a local node setup"
   command -v docker >/dev/null 2>&1 || { echo >&2 "Docker is not installed on your machine, local Juno node can't be ran. Install it from here: https://www.docker.com/get-started"; exit 1; }
-  NODE_1=`docker ps -a --format="{{.Names}}" | grep $CHAIN_ID | awk '{print $1}'`
+  NODE_1=`docker ps -a --format="{{.Names}}" | grep "juno_local" | awk '{print $1}'`
   
   if [[ "$NODE_1" == "" ]]; then 
   	echo "Node not found"

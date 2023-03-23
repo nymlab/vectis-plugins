@@ -16,8 +16,9 @@ use croncat_sdk_tasks::{
     types::{Action, Interval, TaskInfo, TaskRequest, TaskResponse},
 };
 use cw_multi_test::Executor;
-use vectis_contract_tests::common::common::proxy_exec;
+use vectis_contract_tests::common::common::{proxy_exec, INSTALL_FEE, REGISTRY_FEE};
 use vectis_contract_tests::common::plugins_common::PluginsSuite;
+use vectis_plugin_registry::contract::ExecMsg as RegistryExecMsg;
 use vectis_wallet::{PluginParams, PluginSource, ProxyExecuteMsg};
 
 // TODO: add registry as cronkitty is trusted
@@ -70,9 +71,34 @@ fn cronkitty_plugin_works() {
     suite.ds.fast_forward_block_time(10000);
 
     // ==============================================================
-    // Instantiate CronKitty
+    // Upload Cronkitty and add to registry by the pluginCommittee
     // ==============================================================
     let cronkitty_code_id = suite.ds.app.store_code(Box::new(CronKittyPlugin::new()));
+
+    suite
+        .ds
+        .app
+        .execute_contract(
+            suite.ds.plugin_committee.clone(),
+            suite.ds.plugin_registry.clone(),
+            &RegistryExecMsg::RegisterPlugin {
+                name: "Cronkitty".into(),
+                creator: suite.ds.deployer.to_string(),
+                ipfs_hash: "some-hash".into(),
+                version: "1.0".to_string(),
+                code_id: cronkitty_code_id,
+                checksum: "some-checksum".to_string(),
+            },
+            &[coin(REGISTRY_FEE, DENOM)],
+        )
+        .unwrap();
+
+    let plugines = suite.query_plugins(None, None).unwrap();
+    let plugin_id = plugines.total;
+
+    // ==============================================================
+    // Vectis Account controller installs plugin via Vectis Plugin Registry
+    // ==============================================================
     suite
         .ds
         .app
@@ -80,15 +106,16 @@ fn cronkitty_plugin_works() {
             suite.ds.controller.clone(),
             suite.proxy.clone(),
             &ProxyExecuteMsg::<Empty>::InstantiatePlugin {
-                src: PluginSource::CodeId(cronkitty_code_id),
+                src: PluginSource::VectisRegistry(plugin_id),
                 instantiate_msg: to_binary(&CronKittyInstMsg {
                     croncat_factory_addr: factory_addr.to_string(),
+                    vectis_account_addr: suite.proxy.to_string(),
                 })
                 .unwrap(),
                 plugin_params: PluginParams { grantor: false },
                 label: "cronkitty-plugin".into(),
             },
-            &[coin(10000, DENOM)],
+            &[coin(INSTALL_FEE + 0u128, DENOM)],
         )
         .unwrap();
 
@@ -115,6 +142,7 @@ fn cronkitty_plugin_works() {
         to_address: suite.ds.dao.to_string(),
         amount: vec![coin(to_send_amount, DENOM)],
     });
+
     let task = TaskRequest {
         interval: Interval::Block(5),
         boundary: None,
