@@ -1,1 +1,1 @@
-2a205bc31f9e94adc62ab6db42c518d9787d41a8149fdb87e7eceb035d6f3a5b  cronkitty.wasm
+8e13a81b488c43fd9fe5c24ec9aee11938c1bffd5d346dbbde9ca4c7b60c46db  cronkitty.wasm

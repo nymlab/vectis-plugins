@@ -8,7 +8,7 @@ use croncat_sdk_factory::state::CONTRACT_ADDRS;
 use croncat_sdk_manager::msg::ManagerExecuteMsg as CCManagerExecMsg;
 use croncat_sdk_tasks::{
     msg::TasksExecuteMsg as CCTaskExecMsg,
-    types::{Action, TaskRequest},
+    types::{Action, TaskExecutionInfo, TaskRequest},
 };
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
@@ -30,14 +30,19 @@ pub struct CronKittyActionResp {
 }
 
 pub struct CronKittyPlugin<'a> {
-    // Map <action_id, (task_version, mg_version, msg_for_proxy_to_exec, task_hash_on_croncat)>
+    // Pending get task hash
+    // Map <(action_id, task_hash_on_croncat), (task_version, mg_version, msg_for_proxy_to_exec )>
     pub actions: Map<'a, u64, ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>)>,
+    // This is only used when waiting for reply from croncat on task_creation completion
+    // (action_id, task_version, mg_version, msg_for_proxy_to_exec)
+    //pub pending_action: Item<'a, (u64, [u8; 2], [u8; 2], Vec<CosmosMsg>)>,
     pub owner: Item<'a, CanonicalAddr>,
     pub next_action_id: Item<'a, u64>,
     pub croncat_factory: Item<'a, CanonicalAddr>,
     // Latest contract name to the version
     // perhaps can also move this to croncat_factory_sdk::state?
     pub latest_versions: Map<'a, &'a str, [u8; 2]>,
+    pub last_task_execution_info: Item<'a, TaskExecutionInfo>,
 }
 
 #[contract]
@@ -49,6 +54,7 @@ impl CronKittyPlugin<'_> {
             next_action_id: Item::new("id"),
             croncat_factory: Item::new("croncat-manager"),
             latest_versions: Map::new("latest_versions"),
+            last_task_execution_info: Item::new("last_task_execution_info"),
         }
     }
 
@@ -86,22 +92,29 @@ impl CronKittyPlugin<'_> {
         let (deps, _, info) = ctx;
         let (_, mgr_version, msgs, _) = self.actions.load(deps.storage, action_id)?;
         let mgt_addr = self.query_contract_addr(&deps.as_ref(), &mgr_version, MANAGER)?;
+
+        // MAke sure it is from the maanger
         if info.sender != mgt_addr {
-            Err(ContractError::Unauthorized)
-        } else {
-            // TODO: check latest manager taskhash to ensure it is one we created
-            let owner = deps
-                .api
-                .addr_humanize(&self.owner.load(deps.storage)?)?
-                .into_string();
-            let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
-                contract_addr: owner.clone(),
-                msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
-                funds: vec![],
-            });
-            let event = Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
-            Ok(Response::new().add_event(event).add_message(msg))
+            return Err(ContractError::Unauthorized);
         }
+
+        // make sure it is our task
+        // Now: check latest manager taskhash to ensure it is one we created
+        let task_info = self
+            .last_task_execution_info
+            .query(&deps.querier, mgt_addr)?;
+
+        let owner = deps
+            .api
+            .addr_humanize(&self.owner.load(deps.storage)?)?
+            .into_string();
+        let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
+            contract_addr: owner.clone(),
+            msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
+            funds: vec![],
+        });
+        let event = Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
+        Ok(Response::new().add_event(event).add_message(msg))
     }
 
     #[msg(exec)]
