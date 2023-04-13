@@ -1,1 +1,0 @@
-4b756cfc56b235026b663a747f678f7fec55218e1a5a7e01646fefdbb751c870  target/wasm32-unknown-unknown/release/cronkitty.wasm
