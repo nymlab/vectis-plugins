@@ -8,11 +8,14 @@ mod tests;
 
 mod entry_points {
     use cosmwasm_std::{
-        entry_point, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply, Response,
+        entry_point, from_binary, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply,
+        Response,
     };
+    use cw_utils::parse_reply_execute_data;
 
     use crate::contract::{ContractExecMsg, ContractQueryMsg, CronKittyPlugin, InstantiateMsg};
     use crate::error::ContractError;
+    use croncat_sdk_tasks::types::TaskExecutionInfo;
 
     const CONTRACT: CronKittyPlugin = CronKittyPlugin::new();
 
@@ -59,17 +62,13 @@ mod entry_points {
             let expected_id = CONTRACT.next_action_id.load(deps.storage)?;
             if reply.id == expected_id {
                 // only reply_on_success
-                // TODO: update to use data
-                let r = reply.result.unwrap();
-                let task_hash = r
-                    .events
-                    .iter()
-                    .find(|e| e.ty == "wasm")
-                    .ok_or(ContractError::ExpectedEventNotFound)?
-                    .attributes
-                    .iter()
-                    .find(|attr| attr.key == "task_hash")
-                    .ok_or(ContractError::TaskHashNotFound)?;
+                let reply_data = parse_reply_execute_data(reply)?
+                    .data
+                    .ok_or(ContractError::UnexpectedCroncatTaskReply)?;
+                let task_exec_info: TaskExecutionInfo = from_binary(&reply_data)?;
+
+                // TODO: do we want to store other things?
+                let task_hash = task_exec_info.task_hash;
 
                 CONTRACT.actions.update(
                     deps.storage,
@@ -79,7 +78,7 @@ mod entry_points {
                         ContractError,
                     > {
                         let mut task = t.ok_or(ContractError::TaskHashNotFound)?;
-                        task.3 = Some(task_hash.value.clone());
+                        task.3 = Some(task_hash);
                         Ok(task)
                     },
                 )?;
