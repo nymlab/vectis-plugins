@@ -1,5 +1,5 @@
 **/target/
 .env
 .keyring_file*
-artifacts/
+**/artifacts/
 
