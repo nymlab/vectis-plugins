@@ -149,10 +149,13 @@ impl CronKittyPlugin<'_> {
             )?;
 
             // make sure forward all gas
+            // wasm gas_limit is provided by simulation in the frontend
+            // We either do something similar to `validate_msg_calculate_usage`
             let gas_limit = task.actions.iter().try_fold(0u64, |acc, a| {
                 acc.checked_add(a.gas_limit.unwrap_or(0))
                     .ok_or(ContractError::Overflow)
             })?;
+
             let denom = deps.querier.query_bonded_denom()?;
             ensure!(
                 info.funds

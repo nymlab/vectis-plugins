@@ -19,7 +19,7 @@ use cw_multi_test::Executor;
 use vectis_contract_tests::common::common::{proxy_exec, INSTALL_FEE, REGISTRY_FEE};
 use vectis_contract_tests::common::plugins_common::PluginsSuite;
 use vectis_plugin_registry::contract::ExecMsg as RegistryExecMsg;
-use vectis_wallet::{PluginParams, PluginSource, ProxyExecuteMsg};
+use vectis_wallet::{PluginParams, PluginPermissions, PluginSource, ProxyExecuteMsg};
 
 // TODO: add registry as cronkitty is trusted
 //
@@ -131,14 +131,16 @@ fn cronkitty_plugin_works() {
                     vectis_account_addr: suite.proxy.to_string(),
                 })
                 .unwrap(),
-                plugin_params: PluginParams { grantor: false },
+                plugin_params: PluginParams {
+                    permissions: vec![PluginPermissions::Exec],
+                },
                 label: "cronkitty-plugin".into(),
             },
             &[coin(INSTALL_FEE + 0u128, DENOM)],
         )
         .unwrap();
 
-    let cronkitty = suite.query_installed_plugins(None, None).unwrap().plugins[0].clone();
+    let cronkitty = suite.query_installed_plugins().unwrap().exec_plugins[0].clone();
 
     // ==============================================================
     // Create Task on Cronkitty + Croncat
