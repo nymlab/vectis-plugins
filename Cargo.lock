@@ -510,7 +510,7 @@ dependencies = [
  "thiserror",
  "vectis-contract-tests",
  "vectis-plugin-registry",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=149bdb3)",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=7eda045)",
 ]
 
 [[package]]
@@ -1722,7 +1722,7 @@ checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
 [[package]]
 name = "vectis-contract-tests"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=149bdb3#149bdb3cfea749547c88aa2e9c2abbb58736453f"
+source = "git+https://github.com/nymlab/vectis?rev=7eda045#7eda045caad5a452dad1cfb4963b5a6b365b26b1"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1746,13 +1746,13 @@ dependencies = [
  "vectis-factory",
  "vectis-plugin-registry",
  "vectis-proxy",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=149bdb3)",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=7eda045)",
 ]
 
 [[package]]
 name = "vectis-factory"
-version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=149bdb3#149bdb3cfea749547c88aa2e9c2abbb58736453f"
+version = "0.2.0"
+source = "git+https://github.com/nymlab/vectis?rev=7eda045#7eda045caad5a452dad1cfb4963b5a6b365b26b1"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 1.0.1",
@@ -1762,13 +1762,13 @@ dependencies = [
  "cw20 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "derivative",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=149bdb3)",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=7eda045)",
 ]
 
 [[package]]
 name = "vectis-plugin-registry"
-version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=149bdb3#149bdb3cfea749547c88aa2e9c2abbb58736453f"
+version = "0.2.0"
+source = "git+https://github.com/nymlab/vectis?rev=7eda045#7eda045caad5a452dad1cfb4963b5a6b365b26b1"
 dependencies = [
  "anyhow",
  "cosmwasm-schema",
@@ -1781,13 +1781,13 @@ dependencies = [
  "sylvia",
  "sylvia-derive",
  "thiserror",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=149bdb3)",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=7eda045)",
 ]
 
 [[package]]
 name = "vectis-proxy"
-version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=149bdb3#149bdb3cfea749547c88aa2e9c2abbb58736453f"
+version = "0.2.0"
+source = "git+https://github.com/nymlab/vectis?rev=7eda045#7eda045caad5a452dad1cfb4963b5a6b365b26b1"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1801,13 +1801,13 @@ dependencies = [
  "sha2 0.9.9",
  "thiserror",
  "vectis-plugin-registry",
- "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=149bdb3)",
+ "vectis-wallet 0.1.0 (git+https://github.com/nymlab/vectis?rev=7eda045)",
 ]
 
 [[package]]
 name = "vectis-wallet"
 version = "0.1.0"
-source = "git+https://github.com/nymlab/vectis?rev=149bdb3#149bdb3cfea749547c88aa2e9c2abbb58736453f"
+source = "git+https://github.com/nymlab/vectis?rev=7eda045#7eda045caad5a452dad1cfb4963b5a6b365b26b1"
 dependencies = [
  "bech32",
  "cosmwasm-schema",
