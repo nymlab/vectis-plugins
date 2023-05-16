@@ -6,6 +6,14 @@ use crate::tests::helpers::*;
 use cosmwasm_std::{
     coin, to_binary, Addr, BankMsg, CosmosMsg, Empty, QueryRequest, StdError, Uint128, WasmQuery,
 };
+use croncat_integration_testing::{
+    test_helpers::{
+        add_seconds_to_block, default_agents_instantiate_message,
+        default_manager_instantiate_message, default_tasks_instantiate_msg, increment_block_height,
+        init_agents, init_factory, init_manager, init_tasks,
+    },
+    AGENT,
+};
 use croncat_sdk_agents::msg::ExecuteMsg as AgentExecuteMsg;
 use croncat_sdk_manager::{
     msg::{ManagerExecuteMsg, ManagerQueryMsg},
@@ -16,10 +24,14 @@ use croncat_sdk_tasks::{
     types::{Action, Interval, TaskInfo, TaskRequest, TaskResponse},
 };
 use cw_multi_test::Executor;
-use vectis_contract_tests::common::common::{proxy_exec, INSTALL_FEE, REGISTRY_FEE};
-use vectis_contract_tests::common::plugins_common::PluginsSuite;
-use vectis_plugin_registry::contract::ExecMsg as RegistryExecMsg;
-use vectis_wallet::{PluginParams, PluginPermissions, PluginSource, ProxyExecuteMsg};
+use vectis_contract_tests::common::{
+    base_common::HubChainSuite,
+    common::{proxy_exec, INSTALL_FEE, REGISTRY_FEE},
+    plugins::*,
+};
+use vectis_wallet::{
+    PluginParams, PluginPermissions, PluginSource, ProxyExecuteMsg, RegisterPlugin,
+};
 
 // TODO: add registry as cronkitty is trusted
 //
@@ -36,43 +48,37 @@ use vectis_wallet::{PluginParams, PluginPermissions, PluginSource, ProxyExecuteM
 
 #[test]
 fn cronkitty_plugin_works() {
-    let mut suite = PluginsSuite::init().unwrap();
+    let mut suite = HubChainSuite::init().unwrap();
 
     // ==============================================================
     // Instantiate Croncat and add Agent to execute tasks
     // ==============================================================
-    let factory_addr = init_factory(&mut suite.hub.app);
+    let factory = init_factory(&mut suite.app);
 
     let manager_instantiate_msg: croncat_sdk_manager::msg::ManagerInstantiateMsg =
         default_manager_instantiate_message();
-    let manager_addr = init_manager(
-        &mut suite.hub.app,
+    let manager = init_manager(
+        &mut suite.app,
         &manager_instantiate_msg,
-        &factory_addr,
-        &[],
+        &factory,
+        &[coin(1, DENOM)],
     );
 
     let agents_instantiate_msg: croncat_sdk_agents::msg::InstantiateMsg =
         default_agents_instantiate_message();
-    let agents_addr = init_agents(
-        &mut suite.hub.app,
-        &agents_instantiate_msg,
-        &factory_addr,
-        &[],
-    );
+    let agents = init_agents(&mut suite.app, &agents_instantiate_msg, &factory_addr, &[]);
 
     let tasks_instantiate_msg: croncat_sdk_tasks::msg::TasksInstantiateMsg =
         default_tasks_instantiate_msg();
-    let tasks_addr = init_tasks(&mut suite.hub.app, &tasks_instantiate_msg, &factory_addr);
+    let tasks_addr = init_tasks(&mut suite.app, &tasks_instantiate_msg, &factory_addr);
 
     // quick agent register
     // we pre allowed AGENT) into the whitelist on instantiation
     suite
-        .hub
         .app
         .send_tokens(
-            suite.hub.deployer_signer.clone(),
-            Addr::unchecked(AGENT0),
+            suite.deployer_signer.clone(),
+            Addr::unchecked(AGENT),
             &[coin(10_000_00, DENOM)],
         )
         .unwrap();
@@ -81,28 +87,31 @@ fn cronkitty_plugin_works() {
         payable_account_id: Some(AGENT_BENEFICIARY.to_string()),
     };
     suite
-        .hub
         .app
-        .execute_contract(Addr::unchecked(AGENT0), agents_addr.clone(), &msg, &[])
+        .execute_contract(Addr::unchecked(AGENT), agents.clone(), &msg, &[])
         .unwrap();
 
     // This fast forwards 10 blocks and arg is timestamp
-    suite.hub.fast_forward_block_time(10000);
+    suite
+        .app
+        .update_block(|block| add_seconds_to_block(block, 10));
+    suite
+        .app
+        .update_block(|block| increment_block_height(block, Some(2)));
 
     // ==============================================================
     // Upload Cronkitty and add to registry by the pluginCommittee
     // ==============================================================
-    let cronkitty_code_id = suite.hub.app.store_code(Box::new(CronKittyPlugin::new()));
+    let cronkitty_code_id = suite.app.store_code(Box::new(CronKittyPlugin::new()));
 
     suite
-        .hub
         .app
         .execute_contract(
-            suite.hub.plugin_committee.clone(),
-            suite.hub.plugin_registry.clone(),
-            &RegistryExecMsg::RegisterPlugin {
+            suite.plugin_committee.clone(),
+            suite.plugin_registry.clone(),
+            &RegisterPlugin {
                 name: "Cronkitty".into(),
-                creator: suite.hub.deployer.to_string(),
+                creator: suite.deployer.to_string(),
                 ipfs_hash: "some-hash".into(),
                 version: "1.0".to_string(),
                 code_id: cronkitty_code_id,
@@ -112,23 +121,30 @@ fn cronkitty_plugin_works() {
         )
         .unwrap();
 
-    let plugines = suite.query_plugins(None, None).unwrap();
+    let plugines = suite.query_registered_plugins(None, None).unwrap();
     let plugin_id = plugines.total;
 
     // ==============================================================
     // Vectis Account controller installs plugin via Vectis Plugin Registry
     // ==============================================================
+    let proxy = suite
+        .create_new_proxy_without_guardians(
+            suite.controller.clone(),
+            vec![],
+            coin(WALLET_FEE, DENOM),
+        )
+        .unwrap();
+
     suite
-        .hub
         .app
         .execute_contract(
-            suite.hub.controller.clone(),
-            suite.proxy.clone(),
+            suite.controller.clone(),
+            proxy.clone(),
             &ProxyExecuteMsg::<Empty>::InstantiatePlugin {
                 src: PluginSource::VectisRegistry(plugin_id),
                 instantiate_msg: to_binary(&CronKittyInstMsg {
-                    croncat_factory_addr: factory_addr.to_string(),
-                    vectis_account_addr: suite.proxy.to_string(),
+                    croncat_factory_addr: factory.to_string(),
+                    vectis_account_addr: proxy.to_string(),
                 })
                 .unwrap(),
                 plugin_params: PluginParams {
@@ -140,7 +156,7 @@ fn cronkitty_plugin_works() {
         )
         .unwrap();
 
-    let cronkitty = suite.query_installed_plugins().unwrap().exec_plugins[0].clone();
+    let cronkitty = suite.query_installed_plugins(&proxy).unwrap().exec_plugins[0].clone();
 
     // ==============================================================
     // Create Task on Cronkitty + Croncat
@@ -148,19 +164,18 @@ fn cronkitty_plugin_works() {
 
     let to_send_amount = 100;
     suite
-        .hub
         .app
         .send_tokens(
-            suite.hub.deployer.clone(),
-            suite.proxy.clone(),
+            suite.controller.clone(),
+            proxy.clone(),
             &[coin(to_send_amount, DENOM)],
         )
         .unwrap();
 
-    let init_proxy_balance = suite.hub.query_balance(&suite.proxy).unwrap();
+    let init_proxy_balance = suite.query_balance(&proxy).unwrap();
 
     let msg = CosmosMsg::Bank(BankMsg::Send {
-        to_address: suite.hub.deployer.to_string(),
+        to_address: suite.deployer.to_string(),
         amount: vec![coin(to_send_amount, DENOM)],
     });
 
@@ -178,11 +193,10 @@ fn cronkitty_plugin_works() {
     };
 
     suite
-        .hub
         .app
         .execute_contract(
-            suite.hub.controller.clone(),
-            suite.proxy.clone(),
+            suite.controller.clone(),
+            proxy.clone(),
             &proxy_exec(
                 &cronkitty,
                 &CronKittyExecMsg::CreateTask { task },
@@ -195,7 +209,6 @@ fn cronkitty_plugin_works() {
 
     // Check task is added on Croncat Tasks
     let tasks: Vec<TaskInfo> = suite
-        .hub
         .app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -215,7 +228,6 @@ fn cronkitty_plugin_works() {
 
     // Checks that the task is stored in Actions on CronKitty
     let action: CronKittyActionResp = suite
-        .hub
         .app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -228,7 +240,7 @@ fn cronkitty_plugin_works() {
     assert_eq!(action.task_hash.unwrap(), task_hash);
 
     // This fast forwards 10 blocks and arg is timestamp
-    suite.hub.fast_forward_block_time(10000);
+    suite.fast_forward_block_time(10000);
     // ==============================================================
     // Agent executes proxy call
     // ==============================================================
@@ -237,17 +249,16 @@ fn cronkitty_plugin_works() {
     let proxy_call_msg = ManagerExecuteMsg::ProxyCall { task_hash: None };
     // We ask agent to execute the one task
     suite
-        .hub
         .app
         .execute_contract(
-            Addr::unchecked(AGENT0),
-            manager_addr.clone(),
+            Addr::unchecked(AGENT),
+            manager.clone(),
             &proxy_call_msg,
             &vec![],
         )
         .unwrap();
 
-    let after_proxy_balance = suite.hub.query_balance(&suite.proxy).unwrap();
+    let after_proxy_balance = suite.query_balance(&proxy).unwrap();
 
     // Ensure it happened
     assert_eq!(
@@ -259,11 +270,10 @@ fn cronkitty_plugin_works() {
     // ==============================================================
 
     let before_refill_tasks: TaskBalanceResponse = suite
-        .hub
         .app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: manager_addr.to_string(),
+            contract_addr: manager.to_string(),
             msg: to_binary(&ManagerQueryMsg::TaskBalance {
                 task_hash: task_hash.clone(),
             })
@@ -273,11 +283,10 @@ fn cronkitty_plugin_works() {
 
     let refill_amount = 150_000;
     suite
-        .hub
         .app
         .execute_contract(
-            suite.hub.controller.clone(),
-            suite.proxy.clone(),
+            suite.controller.clone(),
+            proxy.clone(),
             &proxy_exec(
                 &cronkitty,
                 &CronKittyExecMsg::RefillTask { task_id: 0 },
@@ -287,14 +296,13 @@ fn cronkitty_plugin_works() {
             &[coin(refill_amount, DENOM)],
         )
         .unwrap();
-    suite.hub.fast_forward_block_time(10000);
+    suite.fast_forward_block_time(10000);
 
     let after_refill_tasks: TaskBalanceResponse = suite
-        .hub
         .app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: manager_addr.to_string(),
+            contract_addr: manager.to_string(),
             msg: to_binary(&ManagerQueryMsg::TaskBalance { task_hash }).unwrap(),
         }))
         .unwrap();
@@ -309,11 +317,10 @@ fn cronkitty_plugin_works() {
     // Proxy remove task from cronkitty and croncat
     // ==============================================================
     suite
-        .hub
         .app
         .execute_contract(
-            suite.hub.controller.clone(),
-            suite.proxy.clone(),
+            suite.controller.clone(),
+            proxy.clone(),
             &proxy_exec(
                 &cronkitty,
                 &CronKittyExecMsg::RemoveTask { task_id: 0 },
@@ -323,11 +330,10 @@ fn cronkitty_plugin_works() {
             &[],
         )
         .unwrap();
-    suite.hub.fast_forward_block_time(10000);
+    suite.fast_forward_block_time(10000);
 
     // Removed on croncat
     let after_remove_task: Vec<TaskResponse> = suite
-        .hub
         .app
         .wrap()
         .query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -345,7 +351,6 @@ fn cronkitty_plugin_works() {
     // Checks that it is removed on cronkitty
     let result: Result<CronKittyActionResp, StdError> =
         suite
-            .hub
             .app
             .wrap()
             .query(&QueryRequest::Wasm(WasmQuery::Smart {
