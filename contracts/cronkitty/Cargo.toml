@@ -1,11 +1,12 @@
 [package]
 name = "cronkitty"
-version = "0.1.0"
+version = "0.2.1"
 description = "A plugin for Vectis Wallet."
 authors = ["bwty <whalelephant@users.noreply.github.com>"]
 edition = "2021"
 repository = "https://github.com/Nymlab/cronkitty"
 homepage = "https://nymlab.it"
+keywords = ["Vectis", "smart-contract-wallet", "account-abstration", "automation", "croncat"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -25,11 +26,11 @@ cw-storage-plus = "1.0.1"
 thiserror = { version = "1.0" }
 cw2 = "1.0.1"
 cw-utils = "1.0.1"
-croncat-sdk-tasks = "1.0.0"
-croncat-sdk-agents= "1.0.0"
-croncat-sdk-manager= "1.0.0"
-croncat-sdk-factory= "1.0.0"
-vectis-wallet = {git = "https://github.com/nymlab/vectis", rev = "152fb72267"}
+croncat-sdk-tasks =  { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
+croncat-sdk-agents = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
+croncat-sdk-manager = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
+croncat-sdk-factory = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
+vectis-wallet = {git = "https://github.com/nymlab/vectis", rev = "5faf9c789a2c"}
 # vectis-wallet = { path = "../../../vectis/packages/vectis" }
 
 
@@ -37,6 +38,7 @@ vectis-wallet = {git = "https://github.com/nymlab/vectis", rev = "152fb72267"}
 anyhow = "1"
 cw-multi-test = "0.16"
 assert_matches = "1.5.0"
-vectis-contract-tests = {git = "https://github.com/nymlab/vectis", rev = "152fb72267"}
-croncat-integration-testing = "1.0.0"
+vectis-contract-tests = {git = "https://github.com/nymlab/vectis", rev = "5faf9c789a2c"}
+# croncat-integration-testing = "1.0.0"
+ croncat-integration-testing = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
 #vectis-contract-tests = { path = "../../../vectis/packages/vectis-tests" }
