@@ -39,4 +39,7 @@ pub enum ContractError {
 
     #[error("Cron cat reply is not expected")]
     UnexpectedCroncatTaskReply,
+
+    #[error("Croncat task hash is not the one saved")]
+    UnexpectedCroncatTaskHash,
 }

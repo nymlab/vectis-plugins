@@ -31,7 +31,7 @@ pub struct CronKittyActionResp {
 
 pub struct CronKittyPlugin<'a> {
     // Pending get task hash
-    // Map <(action_id, task_hash_on_croncat), (task_version, mg_version, msg_for_proxy_to_exec )>
+    // Map <action_id, (task_version, mg_version, msg_for_proxy_to_exec, task_hash_on_croncat )>
     pub actions: Map<'a, u64, ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>)>,
     // This is only used when waiting for reply from croncat on task_creation completion
     // (action_id, task_version, mg_version, msg_for_proxy_to_exec)
@@ -98,23 +98,31 @@ impl CronKittyPlugin<'_> {
             return Err(ContractError::Unauthorized);
         }
 
-        // make sure it is our task
         // Now: check latest manager taskhash to ensure it is one we created
         let task_info = self
             .last_task_execution_info
             .query(&deps.querier, mgt_addr)?;
-
-        let owner = deps
-            .api
-            .addr_humanize(&self.owner.load(deps.storage)?)?
-            .into_string();
-        let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
-            contract_addr: owner.clone(),
-            msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
-            funds: vec![],
-        });
-        let event = Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
-        Ok(Response::new().add_event(event).add_message(msg))
+        let stored_task_info = self.actions.load(deps.storage, action_id)?;
+        if let Some(task_hash) = stored_task_info.3 {
+            if task_info.task_hash != task_hash {
+                return Err(ContractError::UnexpectedCroncatTaskHash);
+            } else {
+                let owner = deps
+                    .api
+                    .addr_humanize(&self.owner.load(deps.storage)?)?
+                    .into_string();
+                let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
+                    contract_addr: owner.clone(),
+                    msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
+                    funds: vec![],
+                });
+                let event =
+                    Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
+                Ok(Response::new().add_event(event).add_message(msg))
+            }
+        } else {
+            return Err(ContractError::TaskHashNotFound);
+        }
     }
 
     #[msg(exec)]

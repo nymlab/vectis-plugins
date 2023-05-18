@@ -1,3 +1,0 @@
-[alias]
-wasm-cronkitty= "build --release --target wasm32-unknown-unknown --package cronkitty"
-

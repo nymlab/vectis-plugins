@@ -5,10 +5,7 @@ use cw_multi_test::{App, Contract, ContractWrapper, Executor};
 use vectis_contract_tests::common::common::*;
 // These addresses need to be well formed as balances are queried in croncat contract
 pub const AGENT_BENEFICIARY: &str = "wasm1ucl9dulgww2trng0dmunj348vxneufu5nk4yy4";
-pub const AGENT0: &str = "wasm1ucl9dulgww2trng0dmunj348vxneufu5n11yy4";
-/// This is used for staking queries
-/// https://github.com/CosmWasm/cosmwasm/blob/32f308a1a56ae5b8278947891306f7a374c3df94/packages/vm/src/environment.rs#L383
-pub const DENOM: &str = "TOKEN";
+pub const AGENT: &str = "wasm1ucl9dulgww2trng0dmunj348vxneufu5n11yy4";
 // Test accounts
 pub const ALICE: &str = "cosmos1a7uhnpqthunr2rzj0ww0hwurpn42wyun6c5puz";
 
@@ -192,7 +189,7 @@ pub(crate) fn default_agents_instantiate_message() -> croncat_sdk_agents::msg::I
         min_active_agent_count: None,
         public_registration: false,
         pause_admin: Addr::unchecked(PAUSE_ADMIN),
-        allowed_agents: Some(vec![AGENT0.to_string()]),
+        allowed_agents: Some(vec![AGENT.to_string()]),
     }
 }
 
