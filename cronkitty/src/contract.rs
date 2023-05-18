@@ -21,6 +21,8 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const TASK: &str = "tasks";
 const MANAGER: &str = "manager";
 
+pub type CronkittyActionRef = ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>);
+
 #[cw_serde]
 pub struct CronKittyActionResp {
     pub msgs: Vec<CosmosMsg>,
@@ -32,7 +34,7 @@ pub struct CronKittyActionResp {
 pub struct CronKittyPlugin<'a> {
     // Pending get task hash
     // Map <action_id, (task_version, mg_version, msg_for_proxy_to_exec, task_hash_on_croncat )>
-    pub actions: Map<'a, u64, ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>)>,
+    pub actions: Map<'a, u64, CronkittyActionRef>,
     // This is only used when waiting for reply from croncat on task_creation completion
     // (action_id, task_version, mg_version, msg_for_proxy_to_exec)
     //pub pending_action: Item<'a, (u64, [u8; 2], [u8; 2], Vec<CosmosMsg>)>,
@@ -105,7 +107,7 @@ impl CronKittyPlugin<'_> {
         let stored_task_info = self.actions.load(deps.storage, action_id)?;
         if let Some(task_hash) = stored_task_info.3 {
             if task_info.task_hash != task_hash {
-                return Err(ContractError::UnexpectedCroncatTaskHash);
+                Err(ContractError::UnexpectedCroncatTaskHash)
             } else {
                 let owner = deps
                     .api
@@ -121,7 +123,7 @@ impl CronKittyPlugin<'_> {
                 Ok(Response::new().add_event(event).add_message(msg))
             }
         } else {
-            return Err(ContractError::TaskHashNotFound);
+            Err(ContractError::TaskHashNotFound)
         }
     }
 
@@ -223,24 +225,21 @@ impl CronKittyPlugin<'_> {
         // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
+        } else if let (task_contract_version, _, _, Some(task_hash)) =
+            self.actions.load(deps.storage, task_id)?
+        {
+            let task = self.query_contract_addr(&deps.as_ref(), &task_contract_version, TASK)?;
+            let msg = SubMsg::reply_on_success(
+                CosmosMsg::Wasm(WasmMsg::Execute {
+                    contract_addr: task.to_string(),
+                    msg: to_binary(&CCTaskExecMsg::RemoveTask { task_hash })?,
+                    funds: vec![],
+                }),
+                task_id,
+            );
+            Ok(Response::new().add_submessage(msg))
         } else {
-            if let (task_contract_version, _, _, Some(task_hash)) =
-                self.actions.load(deps.storage, task_id)?
-            {
-                let task =
-                    self.query_contract_addr(&deps.as_ref(), &task_contract_version, TASK)?;
-                let msg = SubMsg::reply_on_success(
-                    CosmosMsg::Wasm(WasmMsg::Execute {
-                        contract_addr: task.to_string(),
-                        msg: to_binary(&CCTaskExecMsg::RemoveTask { task_hash })?,
-                        funds: vec![],
-                    }),
-                    task_id,
-                );
-                Ok(Response::new().add_submessage(msg))
-            } else {
-                Err(ContractError::TaskHashNotFound)
-            }
+            Err(ContractError::TaskHashNotFound)
         }
     }
 
@@ -320,7 +319,7 @@ impl CronKittyPlugin<'_> {
             .addr_humanize(&self.croncat_factory.load(deps.storage)?)?;
 
         self.latest_versions
-            .query(&deps.querier, cc_factory, &name)
+            .query(&deps.querier, cc_factory, name)
             .transpose()
             .ok_or_else(|| ContractError::NoCronCatVersion {
                 name: name.to_string(),

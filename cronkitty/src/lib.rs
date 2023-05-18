@@ -8,12 +8,13 @@ mod tests;
 
 mod entry_points {
     use cosmwasm_std::{
-        entry_point, from_binary, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply,
-        Response,
+        entry_point, from_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Reply, Response,
     };
     use cw_utils::parse_reply_execute_data;
 
-    use crate::contract::{ContractExecMsg, ContractQueryMsg, CronKittyPlugin, InstantiateMsg};
+    use crate::contract::{
+        ContractExecMsg, ContractQueryMsg, CronKittyPlugin, CronkittyActionRef, InstantiateMsg,
+    };
     use crate::error::ContractError;
     use croncat_sdk_tasks::types::TaskExecutionInfo;
 
@@ -73,10 +74,7 @@ mod entry_points {
                 CONTRACT.actions.update(
                     deps.storage,
                     expected_id,
-                    |t| -> Result<
-                        ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>),
-                        ContractError,
-                    > {
+                    |t| -> Result<CronkittyActionRef, ContractError> {
                         let mut task = t.ok_or(ContractError::TaskHashNotFound)?;
                         task.3 = Some(task_hash);
                         Ok(task)
