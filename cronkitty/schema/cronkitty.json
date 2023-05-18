@@ -1,16 +1,20 @@
 {
   "contract_name": "cronkitty",
-  "contract_version": "0.1.0",
+  "contract_version": "0.2.1",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "InstantiateMsg",
     "type": "object",
     "required": [
-      "croncat_factory_addr"
+      "croncat_factory_addr",
+      "vectis_account_addr"
     ],
     "properties": {
       "croncat_factory_addr": {
+        "type": "string"
+      },
+      "vectis_account_addr": {
         "type": "string"
       }
     }
@@ -314,6 +318,35 @@
             "properties": {
               "gov": {
                 "$ref": "#/definitions/GovMsg"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CosmosQuery_for_WasmQuery": {
+        "description": "Query given module contract with a message",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "croncat"
+            ],
+            "properties": {
+              "croncat": {
+                "$ref": "#/definitions/CroncatQuery"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "wasm"
+            ],
+            "properties": {
+              "wasm": {
+                "$ref": "#/definitions/WasmQuery"
               }
             },
             "additionalProperties": false
@@ -874,7 +907,7 @@
               "null"
             ],
             "items": {
-              "$ref": "#/definitions/CroncatQuery"
+              "$ref": "#/definitions/CosmosQuery_for_WasmQuery"
             }
           },
           "stop_on_fail": {
@@ -917,7 +950,7 @@
             "minimum": 0.0
           },
           "action_path": {
-            "description": "Action key path to the value that should get replaced for example: X: {Y: {Z: value}} [X,Y,Z] to reach that value",
+            "description": "Action key path to the value that should get replaced for example: X: {Y: {Z: value}} \\[X,Y,Z\\] to reach that value",
             "allOf": [
               {
                 "$ref": "#/definitions/PathToValue"
@@ -931,7 +964,7 @@
             "minimum": 0.0
           },
           "query_response_path": {
-            "description": "Query response key's path to the value that needs to be taken to replace value from the above for example query gave that response: A: {B: {C: value}} In order to reach a value [A,B,C] should be used as input",
+            "description": "Query response key's path to the value that needs to be taken to replace value from the above for example query gave that response: A: {B: {C: value}} In order to reach a value \\[A,B,C\\] should be used as input",
             "allOf": [
               {
                 "$ref": "#/definitions/PathToValue"
@@ -1148,6 +1181,91 @@
             ],
             "properties": {
               "clear_admin": {
+                "type": "object",
+                "required": [
+                  "contract_addr"
+                ],
+                "properties": {
+                  "contract_addr": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "WasmQuery": {
+        "oneOf": [
+          {
+            "description": "this queries the public API of another contract at a known address (with known ABI) Return value is whatever the contract returns (caller should know), wrapped in a ContractResult that is JSON encoded.",
+            "type": "object",
+            "required": [
+              "smart"
+            ],
+            "properties": {
+              "smart": {
+                "type": "object",
+                "required": [
+                  "contract_addr",
+                  "msg"
+                ],
+                "properties": {
+                  "contract_addr": {
+                    "type": "string"
+                  },
+                  "msg": {
+                    "description": "msg is the json-encoded QueryMsg struct",
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/Binary"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "this queries the raw kv-store of the contract. returns the raw, unparsed data stored at that key, which may be an empty vector if not present",
+            "type": "object",
+            "required": [
+              "raw"
+            ],
+            "properties": {
+              "raw": {
+                "type": "object",
+                "required": [
+                  "contract_addr",
+                  "key"
+                ],
+                "properties": {
+                  "contract_addr": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "Key is the raw key used in the contracts Storage",
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/Binary"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Returns a [`ContractInfoResponse`] with metadata on the contract from the runtime",
+            "type": "object",
+            "required": [
+              "contract_info"
+            ],
+            "properties": {
+              "contract_info": {
                 "type": "object",
                 "required": [
                   "contract_addr"
