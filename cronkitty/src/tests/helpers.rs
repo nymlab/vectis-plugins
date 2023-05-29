@@ -93,10 +93,11 @@ pub fn register_cronkitty(suite: &mut HubChainSuite, registry_fee: u128) {
             suite.plugin_committee.clone(),
             suite.plugin_registry.clone(),
             &PRegistryExecMsg::RegisterPlugin {
-                name: "Cronkitty".into(),
+                // this has to be same as crate name / contract_name
+                name: "cronkitty".into(),
                 creator: suite.deployer.to_string(),
                 ipfs_hash: "some-hash".into(),
-                version: "1.0".to_string(),
+                version: VECTIS_VERSION.to_string(),
                 code_id: cronkitty_code_id,
                 checksum: "some-checksum".to_string(),
             },

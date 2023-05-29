@@ -430,3 +430,18 @@ fn legit_task_on_cronkitty_can_be_executed() {
     });
     assert_eq!(wasm_events.count(), 1);
 }
+
+#[test]
+fn plugin_info_is_correct() {
+    let mut suite = HubChainSuite::init().unwrap();
+    let cc_contracts =
+        setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
+    let (_, _, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let plugin_info = suite.query_plugin_info(&cronkitty).unwrap();
+    assert_eq!(plugin_info.contract_version, VECTIS_VERSION);
+    let version_details = plugin_info
+        .plugin_info
+        .get_version_details(VECTIS_VERSION)
+        .unwrap();
+    assert_eq!(&version_details.ipfs_hash, "some-hash")
+}
