@@ -1,11 +1,13 @@
 use crate::error::ContractError;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    coin, ensure, to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event,
-    MessageInfo, Response, StdResult, SubMsg, Uint128, WasmMsg,
+    to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event, MessageInfo,
+    Response, StdResult, SubMsg, WasmMsg,
 };
 use croncat_sdk_factory::state::CONTRACT_ADDRS;
-use croncat_sdk_manager::msg::ManagerExecuteMsg as CCManagerExecMsg;
+use croncat_sdk_manager::{
+    msg::ManagerExecuteMsg as CCManagerExecMsg, types::Config as CCManagerConfig,
+};
 use croncat_sdk_tasks::{
     msg::TasksExecuteMsg as CCTaskExecMsg,
     types::{Action, TaskExecutionInfo, TaskRequest},
@@ -21,7 +23,8 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const TASK: &str = "tasks";
 const MANAGER: &str = "manager";
 
-pub type CronkittyActionRef = ([u8; 2], [u8; 2], Vec<CosmosMsg>, Option<String>);
+/// task / mgr version on croncat, msgs to execute, task_hash
+pub type CronkittyActionRef = ([u8; 2], Vec<CosmosMsg>, Option<String>);
 
 #[cw_serde]
 pub struct CronKittyActionResp {
@@ -35,9 +38,6 @@ pub struct CronKittyPlugin<'a> {
     // Pending get task hash
     // Map <action_id, (task_version, mg_version, msg_for_proxy_to_exec, task_hash_on_croncat )>
     pub actions: Map<'a, u64, CronkittyActionRef>,
-    // This is only used when waiting for reply from croncat on task_creation completion
-    // (action_id, task_version, mg_version, msg_for_proxy_to_exec)
-    //pub pending_action: Item<'a, (u64, [u8; 2], [u8; 2], Vec<CosmosMsg>)>,
     pub owner: Item<'a, CanonicalAddr>,
     pub next_action_id: Item<'a, u64>,
     pub croncat_factory: Item<'a, CanonicalAddr>,
@@ -45,6 +45,7 @@ pub struct CronKittyPlugin<'a> {
     // perhaps can also move this to croncat_factory_sdk::state?
     pub latest_versions: Map<'a, &'a str, [u8; 2]>,
     pub last_task_execution_info: Item<'a, TaskExecutionInfo>,
+    pub manager_config: Item<'a, CCManagerConfig>,
 }
 
 #[contract]
@@ -57,6 +58,7 @@ impl CronKittyPlugin<'_> {
             croncat_factory: Item::new("croncat-manager"),
             latest_versions: Map::new("latest_versions"),
             last_task_execution_info: Item::new("last_task_execution_info"),
+            manager_config: Item::new("config"),
         }
     }
 
@@ -92,20 +94,21 @@ impl CronKittyPlugin<'_> {
         action_id: u64,
     ) -> Result<Response, ContractError> {
         let (deps, _, info) = ctx;
-        let (_, mgr_version, msgs, _) = self.actions.load(deps.storage, action_id)?;
-        let mgt_addr = self.query_contract_addr(&deps.as_ref(), &mgr_version, MANAGER)?;
+        let (version, msgs, task_hash_stored) = self.actions.load(deps.storage, action_id)?;
+        let mgt_addr = self.query_contract_addr(&deps.as_ref(), &version, MANAGER)?;
 
-        // MAke sure it is from the maanger
+        // Make sure it is from the maanger
         if info.sender != mgt_addr {
             return Err(ContractError::Unauthorized);
         }
 
         // Now: check latest manager taskhash to ensure it is one we created
+        // the owner field is already in the task_hash
         let task_info = self
             .last_task_execution_info
             .query(&deps.querier, mgt_addr)?;
-        let stored_task_info = self.actions.load(deps.storage, action_id)?;
-        if let Some(task_hash) = stored_task_info.3 {
+
+        if let Some(task_hash) = task_hash_stored {
             if task_info.task_hash != task_hash {
                 Err(ContractError::UnexpectedCroncatTaskHash)
             } else {
@@ -139,43 +142,46 @@ impl CronKittyPlugin<'_> {
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
         } else {
-            let task_contract_version =
+            // guarenteed by croncat that TASK and MANAGER are the same version
+            let contract_version =
                 self.query_latest_version_croncat_contract(&deps.as_ref(), TASK)?;
-            let mgr_contract_version =
-                self.query_latest_version_croncat_contract(&deps.as_ref(), MANAGER)?;
             let task_contract_addr =
-                self.query_contract_addr(&deps.as_ref(), &task_contract_version, TASK)?;
+                self.query_contract_addr(&deps.as_ref(), &contract_version, TASK)?;
+
             // The id for croncat to call back
             let id = self.next_action_id.load(deps.storage)?;
             self.actions.save(
                 deps.storage,
                 id,
                 &(
-                    task_contract_version,
-                    mgr_contract_version,
+                    contract_version,
                     task.actions.iter().cloned().map(|a| a.msg).collect(),
                     None,
                 ),
             )?;
 
-            // make sure forward all gas
-            // wasm gas_limit is provided by simulation in the frontend
-            // We either do something similar to `validate_msg_calculate_usage`
+            // This sums up all the action gas into one because croncat manager will only know the
+            // action id on this contract to call.
+            // Each task's gas_limit is provided by simulation in the frontend on croncat
+            // TODO: We can do something similar to their contracts `validate_msg_calculate_usage` method
+            // as well.
+            //
+            // Croncat logic:
+            // Task contract calculates the total gas specified by user for each task,
+            // it then creates fund balance for the task on the manager (who holds the funds sent)
+            // On storing the task balance, the manager checks there is enough funds (gas_limit,
+            // fees for croncat, native, cw20, ibc, etc)
+            // The required fee per action is gas_base_fee + gas_action_fee + gas_limit +
+            // treasury_fee + agent_fee. If it is not a one-off task, the fees are multipled by 2.
+            //
+            // Since Vectis Accounts will be self-custody, croncat only need to check that the gas is
+            // enough. This is calculated in `execute_create_task_balance` on the manager
+            // We are not checking it here
+
             let gas_limit = task.actions.iter().try_fold(0u64, |acc, a| {
                 acc.checked_add(a.gas_limit.unwrap_or(0))
                     .ok_or(ContractError::Overflow)
             })?;
-
-            let denom = deps.querier.query_bonded_denom()?;
-            ensure!(
-                info.funds
-                    .iter()
-                    .find(|c| c.denom == denom)
-                    .unwrap_or(&coin(0, denom))
-                    .amount
-                    >= Uint128::from(gas_limit),
-                ContractError::NotEnoughFundsForGas
-            );
 
             let gas_limit = if gas_limit == 0 {
                 None
@@ -183,6 +189,7 @@ impl CronKittyPlugin<'_> {
                 Some(gas_limit)
             };
 
+            // This is the action stored on Croncat contract
             let action = Action {
                 msg: CosmosMsg::<Empty>::Wasm(WasmMsg::Execute {
                     contract_addr: env.contract.address.to_string(),
@@ -204,7 +211,8 @@ impl CronKittyPlugin<'_> {
                     msg: to_binary(&CCTaskExecMsg::CreateTask {
                         task: Box::new(task),
                     })?,
-                    // TODO: https://github.com/CronCats/cw-croncat/issues/204
+                    // TODO: This is the value the user provides for the task execution.
+                    // https://github.com/CronCats/cw-croncat/issues/204
                     funds: info.funds,
                 }),
                 id,
@@ -225,10 +233,10 @@ impl CronKittyPlugin<'_> {
         // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
-        } else if let (task_contract_version, _, _, Some(task_hash)) =
+        } else if let (contract_version, _, Some(task_hash)) =
             self.actions.load(deps.storage, task_id)?
         {
-            let task = self.query_contract_addr(&deps.as_ref(), &task_contract_version, TASK)?;
+            let task = self.query_contract_addr(&deps.as_ref(), &contract_version, TASK)?;
             let msg = SubMsg::reply_on_success(
                 CosmosMsg::Wasm(WasmMsg::Execute {
                     contract_addr: task.to_string(),
@@ -260,11 +268,11 @@ impl CronKittyPlugin<'_> {
             Err(ContractError::Unauthorized)
         } else {
             // call croncat to refill task
-            if let (_, mgr_contract_version, _, Some(task_hash)) =
+            if let (contract_version, _, Some(task_hash)) =
                 self.actions.load(deps.storage, task_id)?
             {
                 let manager =
-                    self.query_contract_addr(&deps.as_ref(), &mgr_contract_version, MANAGER)?;
+                    self.query_contract_addr(&deps.as_ref(), &contract_version, MANAGER)?;
                 let msg = CosmosMsg::Wasm(WasmMsg::Execute {
                     contract_addr: manager.to_string(),
                     msg: to_binary(&CCManagerExecMsg::RefillTaskBalance { task_hash })?,
@@ -291,10 +299,9 @@ impl CronKittyPlugin<'_> {
         action_id: u64,
     ) -> Result<CronKittyActionResp, ContractError> {
         let (deps, _) = ctx;
-        let (task_version, mgr_version, msgs, task_hash) =
-            self.actions.load(deps.storage, action_id)?;
-        let task_addr = self.query_contract_addr(&deps, &task_version, TASK)?;
-        let manager_addr = self.query_contract_addr(&deps, &mgr_version, MANAGER)?;
+        let (contract_version, msgs, task_hash) = self.actions.load(deps.storage, action_id)?;
+        let task_addr = self.query_contract_addr(&deps, &contract_version, TASK)?;
+        let manager_addr = self.query_contract_addr(&deps, &contract_version, MANAGER)?;
         Ok(CronKittyActionResp {
             msgs,
             task_hash,
