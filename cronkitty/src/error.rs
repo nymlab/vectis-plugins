@@ -1,4 +1,5 @@
 use cosmwasm_std::StdError;
+use croncat_sdk_core::error::SdkError;
 use cw_utils::ParseReplyError;
 use thiserror::Error;
 
@@ -6,6 +7,9 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
+
+    #[error("{0}")]
+    CroncatSdk(#[from] SdkError),
 
     #[error("{0}")]
     ParseReplyError(#[from] ParseReplyError),
@@ -27,6 +31,9 @@ pub enum ContractError {
 
     #[error("Expected event not found")]
     ExpectedEventNotFound,
+
+    #[error("Task not found")]
+    TaskNotFound,
 
     #[error("Task hash not found")]
     TaskHashNotFound,

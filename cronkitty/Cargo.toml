@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 library = []
+tests = ["library"]
 
 
 [dependencies]
@@ -26,10 +27,11 @@ cw-storage-plus = "1.0.1"
 thiserror = { version = "1.0" }
 cw2 = "1.0.1"
 cw-utils = "1.0.1"
-croncat-sdk-tasks =  { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
-croncat-sdk-agents = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
-croncat-sdk-manager = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
-croncat-sdk-factory = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
+croncat-sdk-tasks =  "1.0.1" 
+croncat-sdk-agents = "1.0.1" 
+croncat-sdk-manager = "1.0.1" 
+croncat-sdk-factory = "1.0.1" 
+croncat-sdk-core = "1.0.1" 
 vectis-wallet = { path = "../../../packages/vectis" }
 
 
@@ -38,7 +40,7 @@ anyhow = "1"
 cw-multi-test = "0.16"
 assert_matches = "1.5.0"
 vectis-contract-tests = { path = "../../../packages/vectis-tests" }
-croncat-tasks =  { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
-croncat-agents = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
-croncat-manager = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
-croncat-factory = { git = "https://github.com/CronCats/cw-croncat/", rev = "339eeb4ecfa59a1de67066da5c5b9ae8fa26a5ac" } 
+croncat-tasks =  "1.0.1" 
+croncat-agents = "1.0.1" 
+croncat-manager = "1.0.1" 
+croncat-factory = "1.0.1" 
