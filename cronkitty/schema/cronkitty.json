@@ -481,6 +481,16 @@
                   "task"
                 ],
                 "properties": {
+                  "auto_refill": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/Uint128"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "task": {
                     "$ref": "#/definitions/TaskRequest"
                   }
@@ -507,6 +517,18 @@
                     "minimum": 0.0
                   }
                 }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "withdraw_funds"
+            ],
+            "properties": {
+              "withdraw_funds": {
+                "type": "object"
               }
             },
             "additionalProperties": false
@@ -1345,6 +1367,16 @@
         "task_addr"
       ],
       "properties": {
+        "auto_refill": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "manager_addr": {
           "$ref": "#/definitions/Addr"
         },
