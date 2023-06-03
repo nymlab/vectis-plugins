@@ -1,5 +1,6 @@
 pub mod contract;
 pub mod error;
+pub mod execute;
 
 #[cfg(test)]
 pub mod multitest;
@@ -8,7 +9,8 @@ mod tests;
 
 mod entry_points {
     use cosmwasm_std::{
-        entry_point, from_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Reply, Response,
+        entry_point, from_binary, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply,
+        Response,
     };
     use cw_utils::parse_reply_execute_data;
 
@@ -46,11 +48,27 @@ mod entry_points {
     }
 
     #[entry_point]
-    pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
-        if let (_, _, Some(task_hash)) = CONTRACT.actions.load(deps.storage, reply.id)? {
+    pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
+        if let (_, _, Some(task_hash), _) = CONTRACT.actions.load(deps.storage, reply.id)? {
             // This means task_hash was stored, i.e. replied from remove_task
             CONTRACT.actions.remove(deps.storage, reply.id);
-            Ok(Response::new().add_event(
+
+            // CronCat would have refunded cronkitty
+            let balances = deps
+                .querier
+                .query_all_balances(env.contract.address.as_str())?;
+            let owner = CONTRACT.owner.load(deps.storage)?;
+            let res = if balances.len() > 0 {
+                let msg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+                    to_address: deps.api.addr_humanize(&owner)?.to_string(),
+                    amount: balances,
+                });
+                Response::new().add_message(msg)
+            } else {
+                Response::new()
+            };
+
+            Ok(res.add_event(
                 Event::new("vectis.cronkitty.v1.ReplyRemoveTask")
                     .add_attribute("Task ID", reply.id.to_string())
                     .add_attribute("Task Hash", task_hash),

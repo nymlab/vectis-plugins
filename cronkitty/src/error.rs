@@ -20,6 +20,9 @@ pub enum ContractError {
     #[error("Empty Funds")]
     EmptyFunds,
 
+    #[error("Funds length should be 1")]
+    OneCoinExpectedForGas,
+
     #[error("Overflow")]
     Overflow,
 
@@ -49,4 +52,7 @@ pub enum ContractError {
 
     #[error("Croncat task hash is not the one saved")]
     UnexpectedCroncatTaskHash,
+
+    #[error("Croncat task balance is not found")]
+    UnexpectedCroncatTaskBalance,
 }

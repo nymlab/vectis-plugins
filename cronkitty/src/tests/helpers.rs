@@ -6,6 +6,7 @@ use crate::tests::croncat_helpers::*;
 use cosmwasm_std::{Addr, BankMsg, Empty};
 use croncat_sdk_agents::msg::ExecuteMsg as AgentExecuteMsg;
 pub use croncat_sdk_core::types::GasPrice;
+use croncat_sdk_manager::{msg::ManagerQueryMsg, types::TaskBalanceResponse};
 use croncat_sdk_tasks::{
     msg::TasksQueryMsg,
     types::{Action, Interval, TaskInfo, TaskRequest},
@@ -17,6 +18,7 @@ use vectis_contract_tests::common::{
     common::{proxy_exec, INSTALL_FEE, REGISTRY_FEE},
 };
 use vectis_wallet::{PluginParams, PluginPermissions, PluginSource, ProxyExecuteMsg};
+pub const TASK_GAS_LIMIT: u64 = 150_000;
 
 pub struct CronCatContracts {
     pub factory_addr: Addr,
@@ -160,6 +162,7 @@ pub fn create_task(
     fund: Coin,
     call_back_msg: CosmosMsg,
     tasks_addr: &Addr,
+    auto_refill: Option<Uint128>,
 ) -> Vec<TaskInfo> {
     let task = TaskRequest {
         interval: Interval::Block(5),
@@ -181,7 +184,7 @@ pub fn create_task(
             proxy.clone(),
             &proxy_exec(
                 &cronkitty,
-                &CronKittyExecMsg::CreateTask { task },
+                &CronKittyExecMsg::CreateTask { task, auto_refill },
                 vec![fund],
             ),
             &[],
@@ -203,9 +206,37 @@ pub fn create_task(
         .unwrap()
 }
 
+pub fn query_task_balance(
+    suite: &mut HubChainSuite,
+    mgmt_addr: &Addr,
+    task_hash: String,
+) -> TaskBalanceResponse {
+    suite
+        .app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: mgmt_addr.to_string(),
+            msg: to_binary(&ManagerQueryMsg::TaskBalance { task_hash }).unwrap(),
+        }))
+        .unwrap()
+}
+
+pub fn get_require_fund(gas_limit: u64) -> u128 {
+    let gas_price_on_mgr = GasPrice::default();
+    // The first *2 is due to the fact that croncat makes it at least 2 for re-occuring tasks
+    // the second *2 is a buffer for watermark  calculation
+    let required = gas_price_on_mgr
+        .calculate(gas_limit + AGENT_FEE + TREASURY_FEE + GAS_BASE_FEE + GAS_ACTION_FEE)
+        .unwrap()
+        * 2
+        * 2;
+    required
+}
+
 pub fn mock_setup_a_task(
     suite: &mut HubChainSuite,
     cc_contracts: &CronCatContracts,
+    auto_refill: Option<Uint128>,
 ) -> (TaskInfo, Addr, Addr) {
     register_cronkitty(suite, REGISTRY_FEE);
     let (proxy, cronkitty) = set_up_proxy_and_install_cronkitty(
@@ -213,14 +244,9 @@ pub fn mock_setup_a_task(
         INSTALL_FEE,
         1,
         &cc_contracts.factory_addr,
-        100_000,
+        100_000_000,
     );
-    let gas_limit = 150_000u64;
-    let gas_price_on_mgr = GasPrice::default();
-    let required = gas_price_on_mgr
-        .calculate(gas_limit + AGENT_FEE + TREASURY_FEE + GAS_BASE_FEE + GAS_ACTION_FEE)
-        .unwrap()
-        * 2;
+    let required = get_require_fund(TASK_GAS_LIMIT);
     let msg = CosmosMsg::Bank(BankMsg::Burn {
         amount: vec![coin(1, DENOM)],
     });
@@ -229,10 +255,11 @@ pub fn mock_setup_a_task(
         suite,
         &proxy,
         &cronkitty,
-        gas_limit,
+        TASK_GAS_LIMIT,
         coin(required, DENOM),
         msg.clone(),
         &cc_contracts.tasks_addr,
+        auto_refill,
     );
     (tasks_on_croncat[0].clone(), proxy, cronkitty)
 }

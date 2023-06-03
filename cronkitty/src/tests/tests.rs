@@ -107,6 +107,7 @@ fn correct_gas_fee_for_task_creation_works() {
         coin(required, DENOM),
         msg.clone(),
         &cc_contracts.tasks_addr,
+        None,
     );
 
     assert_eq!(tasks_on_croncat.len(), 1);
@@ -132,7 +133,7 @@ fn refill_works() {
     let mut suite = HubChainSuite::init().unwrap();
     let cc_contracts =
         setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
-    let (task_on_croncat, proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let (task_on_croncat, proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts, None);
 
     let before_refill_tasks: TaskBalanceResponse = suite
         .app
@@ -187,7 +188,24 @@ fn remove_task_works() {
     let mut suite = HubChainSuite::init().unwrap();
     let cc_contracts =
         setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
-    let (_task_on_croncat, proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let (task_on_croncat, proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts, None);
+
+    // check it was added to cronkitty
+    let _: CronKittyActionResp = suite
+        .app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: cronkitty.to_string(),
+            msg: to_binary(&CronKittyQueryMsg::Action { action_id: 0 }).unwrap(),
+        }))
+        .unwrap();
+
+    // the balance of proxy now
+    let init_proxy_balance = suite.query_balance(&proxy).unwrap();
+    let init_cronkitty_balance = suite.query_balance(&cronkitty).unwrap();
+    let task_balance_on_croncat =
+        query_task_balance(&mut suite, &cc_contracts.manager, task_on_croncat.task_hash);
+
     suite
         .app
         .execute_contract(
@@ -230,6 +248,18 @@ fn remove_task_works() {
             }));
 
     result.unwrap_err();
+
+    let after_proxy_balance = suite.query_balance(&proxy).unwrap();
+    let after_cronkitty_balance = suite.query_balance(&cronkitty).unwrap();
+
+    assert_eq!(
+        after_proxy_balance
+            .amount
+            .checked_sub(init_proxy_balance.amount)
+            .unwrap(),
+        task_balance_on_croncat.balance.unwrap().native_balance
+    );
+    assert_eq!(after_cronkitty_balance, init_cronkitty_balance)
 }
 
 #[test]
@@ -237,7 +267,7 @@ fn remove_task_cannot_be_done_by_others() {
     let mut suite = HubChainSuite::init().unwrap();
     let cc_contracts =
         setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
-    let (_task_on_croncat, _proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let (_task_on_croncat, _proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts, None);
     suite
         .app
         .execute_contract(
@@ -284,6 +314,7 @@ fn insufficient_fee_cannot_create_task() {
         coin(required / 4, DENOM),
         msg.clone(),
         &cc_contracts.tasks_addr,
+        None,
     );
 }
 
@@ -294,7 +325,7 @@ fn cronkitty_actions_cannot_execute_by_other_tasks() {
         setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
 
     // make sure we already have a task on cronkitty to be called by others
-    let (_task_on_croncat, _proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let (_task_on_croncat, _proxy, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts, None);
 
     // now a malicious account creates to call our task
     let msg = CosmosMsg::Wasm(WasmMsg::Execute {
@@ -407,7 +438,7 @@ fn legit_task_on_cronkitty_can_be_executed() {
         setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
 
     // make sure we already have a task on cronkitty to be called by others
-    let (_, _proxy, _) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let (_, _proxy, _) = mock_setup_a_task(&mut suite, &cc_contracts, None);
     suite.fast_forward_block_time(10000);
     let proxy_call_msg = ManagerExecuteMsg::ProxyCall { task_hash: None };
     let res = suite
@@ -420,15 +451,99 @@ fn legit_task_on_cronkitty_can_be_executed() {
         )
         .unwrap();
 
-    let wasm_events = res.events.iter().filter(|event| {
-        event.ty == "wasm"
-            && event
-                .attributes
-                .iter()
-                .find(|attr| attr.key == "vectis.proxy.v1/PluginExecMsg")
-                .is_some()
-    });
+    let wasm_events = res
+        .events
+        .iter()
+        .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
     assert_eq!(wasm_events.count(), 1);
+}
+
+#[test]
+fn refillable_task_on_cronkitty_refills() {
+    let mut suite = HubChainSuite::init().unwrap();
+    let cc_contracts =
+        setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
+
+    // get the watermark for task refill
+    let watermark = get_require_fund(TASK_GAS_LIMIT);
+    let (task_on_croncat, proxy, _) =
+        mock_setup_a_task(&mut suite, &cc_contracts, Some(Uint128::from(watermark)));
+    //mock_setup_a_task(&mut suite, &cc_contracts, Some(Uint128::from(watermark)));
+
+    let pre_task_balance_on_croncat = query_task_balance(
+        &mut suite,
+        &cc_contracts.manager,
+        task_on_croncat.task_hash.clone(),
+    )
+    .balance
+    .unwrap();
+
+    suite.fast_forward_block_time(10000);
+    let proxy_call_msg = ManagerExecuteMsg::ProxyCall { task_hash: None };
+    suite
+        .app
+        .execute_contract(
+            Addr::unchecked(AGENT),
+            cc_contracts.manager.clone(),
+            &proxy_call_msg,
+            &vec![],
+        )
+        .unwrap();
+
+    let after_one_execute_proxy_balance = suite.query_balance(&proxy).unwrap();
+    let after_one_task_balance_on_croncat = query_task_balance(
+        &mut suite,
+        &cc_contracts.manager,
+        task_on_croncat.task_hash.clone(),
+    )
+    .balance
+    .unwrap();
+
+    suite.fast_forward_block_time(10000);
+    let proxy_call_msg = ManagerExecuteMsg::ProxyCall { task_hash: None };
+    let res = suite
+        .app
+        .execute_contract(
+            Addr::unchecked(AGENT),
+            cc_contracts.manager.clone(),
+            &proxy_call_msg,
+            &vec![],
+        )
+        .unwrap();
+
+    // We must check that second task also happened
+    let wasm_events = res
+        .events
+        .iter()
+        .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
+    assert_eq!(wasm_events.count(), 1);
+
+    let after_two_execute_proxy_balance = suite.query_balance(&proxy).unwrap();
+    let after_two_task_balance_on_croncat =
+        query_task_balance(&mut suite, &cc_contracts.manager, task_on_croncat.task_hash)
+            .balance
+            .unwrap();
+
+    assert_eq!(
+        after_one_task_balance_on_croncat,
+        after_two_task_balance_on_croncat
+    );
+
+    assert_eq!(
+        // The first task will deduct without refill
+        pre_task_balance_on_croncat
+            .native_balance
+            .checked_sub(after_one_task_balance_on_croncat.native_balance)
+            .unwrap(),
+        // refill happens after the first balance
+        after_one_execute_proxy_balance
+            .amount
+            .checked_sub(after_two_execute_proxy_balance.amount)
+            .unwrap()
+            // This is because the task set sends 1
+            .checked_sub(Uint128::one())
+            .unwrap()
+    )
 }
 
 #[test]
@@ -436,7 +551,7 @@ fn plugin_info_is_correct() {
     let mut suite = HubChainSuite::init().unwrap();
     let cc_contracts =
         setup_croncat_contracts(&mut suite.app, &suite.deployer_signer, &suite.controller);
-    let (_, _, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts);
+    let (_, _, cronkitty) = mock_setup_a_task(&mut suite, &cc_contracts, None);
     let plugin_info = suite.query_plugin_info(&cronkitty).unwrap();
     assert_eq!(plugin_info.contract_version, VECTIS_VERSION);
     let version_details = plugin_info

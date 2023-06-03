@@ -1,12 +1,13 @@
-use crate::error::ContractError;
+use crate::{error::ContractError, execute};
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, Event, MessageInfo,
-    Response, StdResult, SubMsg, WasmMsg,
+    to_binary, Addr, CanonicalAddr, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
+    StdResult, SubMsg, Uint128, WasmMsg,
 };
 use croncat_sdk_factory::state::CONTRACT_ADDRS;
 use croncat_sdk_manager::{
-    msg::ManagerExecuteMsg as CCManagerExecMsg, types::Config as CCManagerConfig,
+    msg::{ManagerExecuteMsg as CCManagerExecMsg, ManagerQueryMsg as CCManagerQueryMsg},
+    types::{Config as CCConfig, TaskBalance},
 };
 use croncat_sdk_tasks::{
     msg::TasksExecuteMsg as CCTaskExecMsg,
@@ -15,16 +16,15 @@ use croncat_sdk_tasks::{
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 use sylvia::contract;
-use vectis_wallet::ProxyExecuteMsg;
 
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const TASK: &str = "tasks";
-const MANAGER: &str = "manager";
+pub(crate) const TASK: &str = "tasks";
+pub(crate) const MANAGER: &str = "manager";
 
-/// task / mgr version on croncat, msgs to execute, task_hash
-pub type CronkittyActionRef = ([u8; 2], Vec<CosmosMsg>, Option<String>);
+/// task / mgr version on croncat, msgs to execute, task_hash, auto_refill
+pub type CronkittyActionRef = ([u8; 2], Vec<CosmosMsg>, Option<String>, Option<Uint128>);
 
 #[cw_serde]
 pub struct CronKittyActionResp {
@@ -32,6 +32,7 @@ pub struct CronKittyActionResp {
     pub task_hash: Option<String>,
     pub task_addr: Addr,
     pub manager_addr: Addr,
+    pub auto_refill: Option<Uint128>,
 }
 
 pub struct CronKittyPlugin<'a> {
@@ -45,7 +46,8 @@ pub struct CronKittyPlugin<'a> {
     // perhaps can also move this to croncat_factory_sdk::state?
     pub latest_versions: Map<'a, &'a str, [u8; 2]>,
     pub last_task_execution_info: Item<'a, TaskExecutionInfo>,
-    pub manager_config: Item<'a, CCManagerConfig>,
+    pub task_balances: Map<'a, &'a [u8], TaskBalance>,
+    pub native_denom: Item<'a, String>,
 }
 
 #[contract]
@@ -58,7 +60,8 @@ impl CronKittyPlugin<'_> {
             croncat_factory: Item::new("croncat-manager"),
             latest_versions: Map::new("latest_versions"),
             last_task_execution_info: Item::new("last_task_execution_info"),
-            manager_config: Item::new("config"),
+            task_balances: Map::new("tasks_balances"),
+            native_denom: Item::new("native_denom"),
         }
     }
 
@@ -80,54 +83,32 @@ impl CronKittyPlugin<'_> {
         let croncat_factory = deps
             .api
             .addr_canonicalize(deps.api.addr_validate(&croncat_factory_addr)?.as_str())?;
-
         self.croncat_factory.save(deps.storage, &croncat_factory)?;
+
+        let contract_version =
+            self.query_latest_version_croncat_contract(&deps.as_ref(), MANAGER)?;
+        let manager_contract_addr =
+            self.query_contract_addr(&deps.as_ref(), &contract_version, MANAGER)?;
+
+        let config: CCConfig = deps
+            .querier
+            .query_wasm_smart(manager_contract_addr, &CCManagerQueryMsg::Config {})?;
+
         self.next_action_id.save(deps.storage, &0)?;
+        self.native_denom.save(deps.storage, &config.native_denom)?;
 
         Ok(Response::new())
     }
 
+    // This is called by the croncat manager contract to execute a task
     #[msg(exec)]
     pub fn execute(
         &self,
         ctx: (DepsMut, Env, MessageInfo),
         action_id: u64,
     ) -> Result<Response, ContractError> {
-        let (deps, _, info) = ctx;
-        let (version, msgs, task_hash_stored) = self.actions.load(deps.storage, action_id)?;
-        let mgt_addr = self.query_contract_addr(&deps.as_ref(), &version, MANAGER)?;
-
-        // Make sure it is from the maanger
-        if info.sender != mgt_addr {
-            return Err(ContractError::Unauthorized);
-        }
-
-        // Now: check latest manager taskhash to ensure it is one we created
-        // the owner field is already in the task_hash
-        let task_info = self
-            .last_task_execution_info
-            .query(&deps.querier, mgt_addr)?;
-
-        if let Some(task_hash) = task_hash_stored {
-            if task_info.task_hash != task_hash {
-                Err(ContractError::UnexpectedCroncatTaskHash)
-            } else {
-                let owner = deps
-                    .api
-                    .addr_humanize(&self.owner.load(deps.storage)?)?
-                    .into_string();
-                let msg = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
-                    contract_addr: owner.clone(),
-                    msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
-                    funds: vec![],
-                });
-                let event =
-                    Event::new("vectis.cronkitty.v1.MsgExecute").add_attribute("Proxy", owner);
-                Ok(Response::new().add_event(event).add_message(msg))
-            }
-        } else {
-            Err(ContractError::TaskHashNotFound)
-        }
+        let (deps, env, info) = ctx;
+        execute::execute(&self, deps, env, info, action_id)
     }
 
     #[msg(exec)]
@@ -135,8 +116,13 @@ impl CronKittyPlugin<'_> {
         &self,
         ctx: (DepsMut, Env, MessageInfo),
         mut task: TaskRequest,
+        auto_refill: Option<Uint128>,
     ) -> Result<Response, ContractError> {
         let (deps, env, info) = ctx;
+
+        if info.funds.len() != 1 {
+            return Err(ContractError::OneCoinExpectedForGas);
+        }
 
         // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
@@ -148,6 +134,13 @@ impl CronKittyPlugin<'_> {
             let task_contract_addr =
                 self.query_contract_addr(&deps.as_ref(), &contract_version, TASK)?;
 
+            // check that at least the first instance has the refilled about
+            if let Some(refill_value) = &auto_refill {
+                if info.funds[0].amount.lt(refill_value) {
+                    return Err(ContractError::NotEnoughFundsForGas);
+                }
+            }
+
             // The id for croncat to call back
             let id = self.next_action_id.load(deps.storage)?;
             self.actions.save(
@@ -157,6 +150,7 @@ impl CronKittyPlugin<'_> {
                     contract_version,
                     task.actions.iter().cloned().map(|a| a.msg).collect(),
                     None,
+                    auto_refill,
                 ),
             )?;
 
@@ -233,7 +227,7 @@ impl CronKittyPlugin<'_> {
         // only the owner (proxy) can create task
         if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
             Err(ContractError::Unauthorized)
-        } else if let (contract_version, _, Some(task_hash)) =
+        } else if let (contract_version, _, Some(task_hash), _) =
             self.actions.load(deps.storage, task_id)?
         {
             let task = self.query_contract_addr(&deps.as_ref(), &contract_version, TASK)?;
@@ -248,6 +242,30 @@ impl CronKittyPlugin<'_> {
             Ok(Response::new().add_submessage(msg))
         } else {
             Err(ContractError::TaskHashNotFound)
+        }
+    }
+
+    #[msg(exec)]
+    pub fn withdraw_funds(
+        &self,
+        ctx: (DepsMut, Env, MessageInfo),
+    ) -> Result<Response, ContractError> {
+        let (deps, env, info) = ctx;
+        if info.sender != deps.api.addr_humanize(&self.owner.load(deps.storage)?)? {
+            Err(ContractError::Unauthorized)
+        } else {
+            let balances = deps
+                .querier
+                .query_all_balances(env.contract.address.as_str())?;
+
+            if balances.len() > 0 {
+                let msg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+                    to_address: info.sender.to_string(),
+                    amount: balances,
+                });
+                return Ok(Response::new().add_message(msg));
+            }
+            Ok(Response::new())
         }
     }
 
@@ -268,7 +286,7 @@ impl CronKittyPlugin<'_> {
             Err(ContractError::Unauthorized)
         } else {
             // call croncat to refill task
-            if let (contract_version, _, Some(task_hash)) =
+            if let (contract_version, _, Some(task_hash), _) =
                 self.actions.load(deps.storage, task_id)?
             {
                 let manager =
@@ -299,7 +317,8 @@ impl CronKittyPlugin<'_> {
         action_id: u64,
     ) -> Result<CronKittyActionResp, ContractError> {
         let (deps, _) = ctx;
-        let (contract_version, msgs, task_hash) = self.actions.load(deps.storage, action_id)?;
+        let (contract_version, msgs, task_hash, auto_refill) =
+            self.actions.load(deps.storage, action_id)?;
         let task_addr = self.query_contract_addr(&deps, &contract_version, TASK)?;
         let manager_addr = self.query_contract_addr(&deps, &contract_version, MANAGER)?;
         Ok(CronKittyActionResp {
@@ -307,6 +326,7 @@ impl CronKittyPlugin<'_> {
             task_hash,
             task_addr,
             manager_addr,
+            auto_refill,
         })
     }
 
@@ -316,7 +336,7 @@ impl CronKittyPlugin<'_> {
         Ok(Response::default())
     }
 
-    fn query_latest_version_croncat_contract(
+    pub(crate) fn query_latest_version_croncat_contract(
         &self,
         deps: &Deps,
         name: &str,
@@ -336,7 +356,7 @@ impl CronKittyPlugin<'_> {
 
     /// Takes a CronCat contract name, queries the factory for the latest contract address.
     /// Returns a result with the latest version and the addr, or an error.
-    fn query_contract_addr(
+    pub(crate) fn query_contract_addr(
         &self,
         deps: &Deps,
         version: &[u8; 2],
