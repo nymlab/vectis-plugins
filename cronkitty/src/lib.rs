@@ -58,7 +58,7 @@ mod entry_points {
                 .querier
                 .query_all_balances(env.contract.address.as_str())?;
             let owner = CONTRACT.owner.load(deps.storage)?;
-            let res = if balances.len() > 0 {
+            let res = if !balances.is_empty() {
                 let msg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
                     to_address: deps.api.addr_humanize(&owner)?.to_string(),
                     amount: balances,

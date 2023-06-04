@@ -43,7 +43,7 @@ pub fn execute(
             if let Some(watermark) = auto_refill {
                 let current_task_balance_on_croncat = cronkitty
                     .task_balances
-                    .query(&deps.querier, mgt_addr.clone(), &task_hash.as_bytes())?
+                    .query(&deps.querier, mgt_addr, task_hash.as_bytes())?
                     .ok_or(ContractError::UnexpectedCroncatTaskBalance)?;
 
                 if current_task_balance_on_croncat

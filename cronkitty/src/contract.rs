@@ -108,7 +108,7 @@ impl CronKittyPlugin<'_> {
         action_id: u64,
     ) -> Result<Response, ContractError> {
         let (deps, env, info) = ctx;
-        execute::execute(&self, deps, env, info, action_id)
+        execute::execute(self, deps, env, info, action_id)
     }
 
     #[msg(exec)]
@@ -258,7 +258,7 @@ impl CronKittyPlugin<'_> {
                 .querier
                 .query_all_balances(env.contract.address.as_str())?;
 
-            if balances.len() > 0 {
+            if !balances.is_empty() {
                 let msg = CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
                     to_address: info.sender.to_string(),
                     amount: balances,
