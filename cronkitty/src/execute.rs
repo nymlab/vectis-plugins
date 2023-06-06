@@ -1,8 +1,11 @@
 use crate::{
     contract::{CronKittyPlugin, ExecMsg, MANAGER},
     error::ContractError,
+    ACTION_REPLY_ID,
 };
-use cosmwasm_std::{coins, to_binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, WasmMsg};
+use cosmwasm_std::{
+    coins, to_binary, CosmosMsg, DepsMut, Empty, Env, MessageInfo, Response, SubMsg, WasmMsg,
+};
 use vectis_wallet::ProxyExecuteMsg;
 
 pub fn execute(
@@ -12,7 +15,7 @@ pub fn execute(
     info: MessageInfo,
     action_id: u64,
 ) -> Result<Response, ContractError> {
-    let (version, mut msgs, task_hash_stored, auto_refill) =
+    let (version, msgs, task_hash_stored, auto_refill) =
         cronkitty.actions.load(deps.storage, action_id)?;
     let mgt_addr = cronkitty.query_contract_addr(&deps.as_ref(), &version, MANAGER)?;
 
@@ -35,10 +38,21 @@ pub fn execute(
                 .api
                 .addr_humanize(&cronkitty.owner.load(deps.storage)?)?
                 .into_string();
+
             // Once we know it is the taskhash we created, we will
             // 1. Call Proxy PluginExecute to let proxy take action as instructure
             // 2. Check if the task requires auto-refill, if it does, we will refill it to the
             //    expected level
+            // These are submessages so that even if it fails, we do not error so that msgs / refill happens
+            //
+            let mut forward_msgs = vec![SubMsg::reply_on_error(
+                WasmMsg::Execute {
+                    contract_addr: owner.clone(),
+                    msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
+                    funds: vec![],
+                },
+                ACTION_REPLY_ID,
+            )];
 
             if let Some(watermark) = auto_refill {
                 let current_task_balance_on_croncat = cronkitty
@@ -57,22 +71,24 @@ pub fn execute(
                         .unwrap();
                     let denom = cronkitty.native_denom.load(deps.storage)?;
 
-                    msgs.push(CosmosMsg::Wasm(WasmMsg::Execute {
+                    let refill_msg = CosmosMsg::<Empty>::Wasm(WasmMsg::Execute {
                         contract_addr: env.contract.address.to_string(),
                         msg: to_binary(&ExecMsg::RefillTask { task_id: action_id })?,
                         funds: coins(to_refill_amount.u128(), denom),
+                    });
+
+                    forward_msgs.push(SubMsg::new(WasmMsg::Execute {
+                        contract_addr: owner.clone(),
+                        msg: to_binary(&ProxyExecuteMsg::PluginExecute {
+                            msgs: vec![refill_msg],
+                        })?,
+                        funds: vec![],
                     }))
                 }
             }
 
-            let forward_msgs = CosmosMsg::<_>::Wasm(WasmMsg::Execute {
-                contract_addr: owner.clone(),
-                msg: to_binary(&ProxyExecuteMsg::PluginExecute { msgs })?,
-                funds: vec![],
-            });
-
             Ok(Response::new()
-                .add_message(forward_msgs)
+                .add_submessages(forward_msgs)
                 .add_attribute("vectis.cronkitty", "MsgExecute")
                 .add_attribute("Proxy", owner)
                 .add_attribute("action_id", action_id.to_string()))

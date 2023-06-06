@@ -7,6 +7,7 @@ pub mod multitest;
 #[cfg(test)]
 mod tests;
 
+pub const ACTION_REPLY_ID: u64 = u64::MAX;
 mod entry_points {
     use cosmwasm_std::{
         entry_point, from_binary, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply,
@@ -14,10 +15,13 @@ mod entry_points {
     };
     use cw_utils::parse_reply_execute_data;
 
-    use crate::contract::{
-        ContractExecMsg, ContractQueryMsg, CronKittyPlugin, CronkittyActionRef, InstantiateMsg,
+    use crate::{
+        contract::{
+            ContractExecMsg, ContractQueryMsg, CronKittyPlugin, CronkittyActionRef, InstantiateMsg,
+        },
+        error::ContractError,
+        ACTION_REPLY_ID,
     };
-    use crate::error::ContractError;
     use croncat_sdk_tasks::types::TaskExecutionInfo;
 
     const CONTRACT: CronKittyPlugin = CronKittyPlugin::new();
@@ -49,6 +53,13 @@ mod entry_points {
 
     #[entry_point]
     pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
+        if reply.id == ACTION_REPLY_ID {
+            // This is going to be an error because it is `reply_on_error`
+            let err = parse_reply_execute_data(reply).unwrap_err();
+            return Ok(
+                Response::new().add_attribute("Vectis PluginExecute Error", format! {"{err}"})
+            );
+        }
         if let (_, _, Some(task_hash), _) = CONTRACT.actions.load(deps.storage, reply.id)? {
             // This means task_hash was stored, i.e. replied from remove_task
             CONTRACT.actions.remove(deps.storage, reply.id);

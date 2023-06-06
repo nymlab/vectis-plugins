@@ -480,7 +480,7 @@ fn refillable_task_on_cronkitty_refills() {
 
     suite.fast_forward_block_time(10000);
     let proxy_call_msg = ManagerExecuteMsg::ProxyCall { task_hash: None };
-    suite
+    let first_task_res = suite
         .app
         .execute_contract(
             Addr::unchecked(AGENT),
@@ -489,6 +489,13 @@ fn refillable_task_on_cronkitty_refills() {
             &vec![],
         )
         .unwrap();
+
+    // The first task does not refill because balance should be above watermark
+    let wasm_events_1 = first_task_res
+        .events
+        .iter()
+        .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
+    assert_eq!(wasm_events_1.count(), 1);
 
     let after_one_execute_proxy_balance = suite.query_balance(&proxy).unwrap();
     let after_one_task_balance_on_croncat = query_task_balance(
@@ -511,12 +518,12 @@ fn refillable_task_on_cronkitty_refills() {
         )
         .unwrap();
 
-    // We must check that second task also happened
-    let wasm_events = res
+    // We must check that second task also happened with refill
+    let wasm_events_2 = res
         .events
         .iter()
         .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
-    assert_eq!(wasm_events.count(), 1);
+    assert_eq!(wasm_events_2.count(), 2);
 
     let after_two_execute_proxy_balance = suite.query_balance(&proxy).unwrap();
     let after_two_task_balance_on_croncat =
