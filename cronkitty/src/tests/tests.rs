@@ -4,7 +4,8 @@ pub use crate::contract::{
 };
 use crate::tests::{croncat_helpers::*, helpers::*};
 use cosmwasm_std::{
-    coin, to_binary, Addr, BankMsg, CosmosMsg, QueryRequest, StdError, Uint128, WasmQuery,
+    coin, to_binary, Addr, Attribute, BankMsg, CosmosMsg, QueryRequest, StdError, Uint128,
+    WasmQuery,
 };
 use croncat_sdk_manager::{
     msg::{ManagerExecuteMsg, ManagerQueryMsg},
@@ -451,11 +452,22 @@ fn legit_task_on_cronkitty_can_be_executed() {
         )
         .unwrap();
 
-    let wasm_events = res
+    let wasm_events: Vec<Event> = res
         .events
         .iter()
-        .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
-    assert_eq!(wasm_events.count(), 1);
+        .cloned()
+        .filter(|event| event.ty == "wasm-vectis.proxy.v1")
+        .collect();
+
+    let attr: Vec<Attribute> = wasm_events[0]
+        .attributes
+        .iter()
+        .cloned()
+        .filter(|attr| attr.key == "action")
+        .collect();
+
+    assert_eq!(wasm_events.len(), 1);
+    assert_eq!(attr[0].value, "Plugin Execute");
 }
 
 #[test]
@@ -494,7 +506,7 @@ fn refillable_task_on_cronkitty_refills() {
     let wasm_events_1 = first_task_res
         .events
         .iter()
-        .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
+        .filter(|event| event.ty == "wasm-vectis.proxy.v1");
     assert_eq!(wasm_events_1.count(), 1);
 
     let after_one_execute_proxy_balance = suite.query_balance(&proxy).unwrap();
@@ -522,7 +534,7 @@ fn refillable_task_on_cronkitty_refills() {
     let wasm_events_2 = res
         .events
         .iter()
-        .filter(|event| event.ty == "wasm-vectis.proxy.v1/MsgPluginExecute");
+        .filter(|event| event.ty == "wasm-vectis.proxy.v1");
     assert_eq!(wasm_events_2.count(), 2);
 
     let after_two_execute_proxy_balance = suite.query_balance(&proxy).unwrap();
