@@ -54,6 +54,35 @@
         },
         "additionalProperties": false
       },
+      "AutoRefill": {
+        "description": "This supports auto-refilling of croncat tasks directly from the",
+        "type": "object",
+        "properties": {
+          "stop_after": {
+            "description": "AutoRefill limit, if unset, it will continue until proxy wallet has no funds left to refill, at which point, the task will continue with the remaining balance on the Croncat contract",
+            "anyOf": [
+              {
+                "$ref": "#/definitions/RefillLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trigger_balance": {
+            "description": "Balance under which the refill is triggered, if it is not set, it will be the initial balance at task creation",
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Uint128"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "BankMsg": {
         "description": "The message types of the bank module.\n\nSee https://github.com/cosmos/cosmos-sdk/blob/v0.40.0/proto/cosmos/bank/v1beta1/tx.proto",
         "oneOf": [
@@ -484,7 +513,7 @@
                   "auto_refill": {
                     "anyOf": [
                       {
-                        "$ref": "#/definitions/Uint128"
+                        "$ref": "#/definitions/AutoRefill"
                       },
                       {
                         "type": "null"
@@ -799,6 +828,36 @@
         "items": {
           "$ref": "#/definitions/ValueIndex"
         }
+      },
+      "RefillLimit": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "failed_attempts"
+            ],
+            "properties": {
+              "failed_attempts": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "total_refilled_amount"
+            ],
+            "properties": {
+              "total_refilled_amount": {
+                "$ref": "#/definitions/Uint128"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "StakingMsg": {
         "description": "The message types of the staking module.\n\nSee https://github.com/cosmos/cosmos-sdk/blob/v0.40.0/proto/cosmos/staking/v1beta1/tx.proto",
@@ -1370,7 +1429,7 @@
         "auto_refill": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Uint128"
+              "$ref": "#/definitions/AutoRefill"
             },
             {
               "type": "null"
@@ -1385,6 +1444,16 @@
           "items": {
             "$ref": "#/definitions/CosmosMsg_for_Empty"
           }
+        },
+        "refill_accounting": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RefillAccounting"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "task_addr": {
           "$ref": "#/definitions/Addr"
@@ -1401,6 +1470,35 @@
         "Addr": {
           "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
           "type": "string"
+        },
+        "AutoRefill": {
+          "description": "This supports auto-refilling of croncat tasks directly from the",
+          "type": "object",
+          "properties": {
+            "stop_after": {
+              "description": "AutoRefill limit, if unset, it will continue until proxy wallet has no funds left to refill, at which point, the task will continue with the remaining balance on the Croncat contract",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RefillLimit"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trigger_balance": {
+              "description": "Balance under which the refill is triggered, if it is not set, it will be the initial balance at task creation",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Uint128"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
         },
         "BankMsg": {
           "description": "The message types of the bank module.\n\nSee https://github.com/cosmos/cosmos-sdk/blob/v0.40.0/proto/cosmos/bank/v1beta1/tx.proto",
@@ -1833,6 +1931,64 @@
               "minimum": 0.0
             }
           }
+        },
+        "RefillAccounting": {
+          "type": "object",
+          "required": [
+            "last_refill_amount",
+            "total_action_failed",
+            "total_refill_amount",
+            "total_refills"
+          ],
+          "properties": {
+            "last_refill_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "total_action_failed": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "total_refill_amount": {
+              "$ref": "#/definitions/Uint128"
+            },
+            "total_refills": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "RefillLimit": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "failed_attempts"
+              ],
+              "properties": {
+                "failed_attempts": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "total_refilled_amount"
+              ],
+              "properties": {
+                "total_refilled_amount": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         },
         "StakingMsg": {
           "description": "The message types of the staking module.\n\nSee https://github.com/cosmos/cosmos-sdk/blob/v0.40.0/proto/cosmos/staking/v1beta1/tx.proto",
