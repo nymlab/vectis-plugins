@@ -1,26 +1,26 @@
 pub mod contract;
 pub mod error;
 pub mod execute;
+pub mod types;
 
 #[cfg(test)]
 pub mod multitest;
 #[cfg(test)]
 mod tests;
 
-pub const ACTION_REPLY_ID: u64 = u64::MAX;
+pub const ACTION_ERROR_REPLY_ID: u64 = u64::MAX;
 mod entry_points {
     use cosmwasm_std::{
-        entry_point, from_binary, Binary, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply,
+        entry_point, from_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Reply,
         Response,
     };
     use cw_utils::parse_reply_execute_data;
 
     use crate::{
-        contract::{
-            ContractExecMsg, ContractQueryMsg, CronKittyPlugin, CronkittyActionRef, InstantiateMsg,
-        },
+        contract::{ContractExecMsg, ContractQueryMsg, CronKittyPlugin, InstantiateMsg},
         error::ContractError,
-        ACTION_REPLY_ID,
+        types::ActionRef,
+        ACTION_ERROR_REPLY_ID,
     };
     use croncat_sdk_tasks::types::TaskExecutionInfo;
 
@@ -53,15 +53,31 @@ mod entry_points {
 
     #[entry_point]
     pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
-        if reply.id == ACTION_REPLY_ID {
-            // This is going to be an error because it is `reply_on_error`
+        // This is going to be an error because it is `reply_on_error`
+        if reply.id == ACTION_ERROR_REPLY_ID {
+            // We update failure refill accounting
+            let action_id = CONTRACT.exec_action_id.load(deps.storage)?;
+            CONTRACT.actions.update(
+                deps.storage,
+                action_id,
+                |a| -> Result<ActionRef, ContractError> {
+                    let action_ref = a.ok_or(ContractError::TaskNotFound)?;
+                    action_ref.failed_action()
+                },
+            )?;
             let err = parse_reply_execute_data(reply).unwrap_err();
             return Ok(
                 Response::new().add_attribute("Vectis PluginExecute Error", format! {"{err}"})
             );
         }
-        if let (_, _, Some(task_hash), _) = CONTRACT.actions.load(deps.storage, reply.id)? {
-            // This means task_hash was stored, i.e. replied from remove_task
+        let action = CONTRACT.actions.load(deps.storage, reply.id)?;
+
+        // if reply is not an action error, it will be from either
+        // 1. task creation - previously not set task_hash
+        // 2. task deletion - have previous task_hash
+
+        // Task deletion
+        if let Some(task_hash) = &action.task_hash {
             CONTRACT.actions.remove(deps.storage, reply.id);
 
             // CronCat would have refunded cronkitty
@@ -79,12 +95,12 @@ mod entry_points {
                 Response::new()
             };
 
-            Ok(res.add_event(
-                Event::new("vectis.cronkitty.v1.ReplyRemoveTask")
-                    .add_attribute("Task ID", reply.id.to_string())
-                    .add_attribute("Task Hash", task_hash),
-            ))
+            Ok(res
+                .add_attribute("vectis.cronkitty.v1", "task_deletion")
+                .add_attribute("Task ID", reply.id.to_string())
+                .add_attribute("Task Hash", task_hash))
         } else {
+            // Task Creation
             let expected_id = CONTRACT.next_action_id.load(deps.storage)?;
             let reply_id = reply.id;
             if reply_id == expected_id {
@@ -96,9 +112,9 @@ mod entry_points {
                 CONTRACT.actions.update(
                     deps.storage,
                     expected_id,
-                    |t| -> Result<CronkittyActionRef, ContractError> {
+                    |t| -> Result<ActionRef, ContractError> {
                         let mut task = t.ok_or(ContractError::TaskNotFound)?;
-                        task.2 = Some(task_hash.clone());
+                        task.task_hash = Some(task_hash.clone());
                         Ok(task)
                     },
                 )?;
@@ -107,11 +123,10 @@ mod entry_points {
                     id.checked_add(1).ok_or(ContractError::Overflow)
                 })?;
 
-                Ok(Response::new().add_event(
-                    Event::new("vectis.cronkitty.v1.ReplyCreateTask")
-                        .add_attribute("Task ID", reply_id.to_string())
-                        .add_attribute("Task Hash", task_hash),
-                ))
+                Ok(Response::new()
+                    .add_attribute("vectis.cronkitty.v1", "task_creation")
+                    .add_attribute("Task ID", reply_id.to_string())
+                    .add_attribute("Task Hash", task_hash))
             } else {
                 Err(ContractError::InvalidReplyId)
             }

@@ -1,12 +1,18 @@
-pub use crate::contract::{
-    CronKittyActionResp, CronKittyPlugin, ExecMsg as CronKittyExecMsg,
-    InstantiateMsg as CronKittyInstMsg, QueryMsg as CronKittyQueryMsg,
-};
 use crate::tests::croncat_helpers::*;
+pub use crate::{
+    contract::{
+        CronKittyPlugin, ExecMsg as CronKittyExecMsg, InstantiateMsg as CronKittyInstMsg,
+        QueryMsg as CronKittyQueryMsg,
+    },
+    types::{AutoRefill, CronKittyActionResp},
+};
 use cosmwasm_std::{Addr, BankMsg, Empty};
 use croncat_sdk_agents::msg::ExecuteMsg as AgentExecuteMsg;
 pub use croncat_sdk_core::types::GasPrice;
-use croncat_sdk_manager::{msg::ManagerQueryMsg, types::TaskBalanceResponse};
+use croncat_sdk_manager::{
+    msg::{ManagerExecuteMsg, ManagerQueryMsg},
+    types::TaskBalanceResponse,
+};
 use croncat_sdk_tasks::{
     msg::TasksQueryMsg,
     types::{Action, Interval, TaskInfo, TaskRequest},
@@ -162,7 +168,7 @@ pub fn create_task(
     fund: Coin,
     call_back_msg: CosmosMsg,
     tasks_addr: &Addr,
-    auto_refill: Option<Uint128>,
+    auto_refill: Option<AutoRefill>,
 ) -> Vec<TaskInfo> {
     let task = TaskRequest {
         interval: Interval::Block(5),
@@ -233,10 +239,48 @@ pub fn get_require_fund(gas_limit: u64) -> u128 {
     required
 }
 
+pub fn agent_proxy_call(suite: &mut HubChainSuite, manager: &Addr) -> AppResponse {
+    let proxy_call_msg = ManagerExecuteMsg::ProxyCall { task_hash: None };
+    suite
+        .app
+        .execute_contract(
+            Addr::unchecked(AGENT),
+            manager.clone(),
+            &proxy_call_msg,
+            &vec![],
+        )
+        .unwrap()
+}
+
+pub fn query_action_response(
+    suite: &HubChainSuite,
+    cronkitty: &Addr,
+    action_id: u64,
+) -> CronKittyActionResp {
+    let res: CronKittyActionResp = suite
+        .app
+        .wrap()
+        .query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: cronkitty.to_string(),
+            msg: to_binary(&CronKittyQueryMsg::Action { action_id }).unwrap(),
+        }))
+        .unwrap();
+    res
+}
+
+pub fn filter_event(res: &AppResponse, event_type: &str) -> Vec<Event> {
+    res.events
+        .iter()
+        .cloned()
+        .filter(|event| event.ty == event_type)
+        .collect()
+}
+
 pub fn mock_setup_a_task(
     suite: &mut HubChainSuite,
     cc_contracts: &CronCatContracts,
-    auto_refill: Option<Uint128>,
+    auto_refill: Option<AutoRefill>,
+    msg: Option<CosmosMsg>,
 ) -> (TaskInfo, Addr, Addr) {
     register_cronkitty(suite, REGISTRY_FEE);
     let (proxy, cronkitty) = set_up_proxy_and_install_cronkitty(
@@ -247,9 +291,9 @@ pub fn mock_setup_a_task(
         100_000_000,
     );
     let required = get_require_fund(TASK_GAS_LIMIT);
-    let msg = CosmosMsg::Bank(BankMsg::Burn {
+    let msg = msg.unwrap_or(CosmosMsg::Bank(BankMsg::Burn {
         amount: vec![coin(1, DENOM)],
-    });
+    }));
 
     let tasks_on_croncat = create_task(
         suite,

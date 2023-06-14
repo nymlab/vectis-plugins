@@ -55,4 +55,7 @@ pub enum ContractError {
 
     #[error("Croncat task balance is not found")]
     UnexpectedCroncatTaskBalance,
+
+    #[error("Attempting to refill not refillable task")]
+    NotRefillable,
 }
