@@ -11,3 +11,5 @@ This repo contains the plugins developed by Nymlab.
 ## Plugins
 
 - [Cronkitty](./cronkitty) is a wrapper around Croncat - programmable automation of blockchain exections
+
+[vectis]: https://github.com/nymlab/vectis
