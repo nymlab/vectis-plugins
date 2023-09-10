@@ -1,0 +1,309 @@
+{
+  "contract_name": "avida-identity-plugin",
+  "contract_version": "0.1.0",
+  "idl_version": "1.0.0",
+  "instantiate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InstantiateMsg",
+    "type": "object",
+    "required": [
+      "cred_def"
+    ],
+    "properties": {
+      "cred_def": {
+        "$ref": "#/definitions/WCredentialPubKey"
+      }
+    },
+    "additionalProperties": false,
+    "definitions": {
+      "BigNumberBytes": {
+        "type": "string"
+      },
+      "Binary": {
+        "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+        "type": "string"
+      },
+      "PointG1Bytes": {
+        "$ref": "#/definitions/Binary"
+      },
+      "PointG2Bytes": {
+        "$ref": "#/definitions/Binary"
+      },
+      "WCredentialPrimaryPubKey": {
+        "type": "object",
+        "required": [
+          "n",
+          "r",
+          "rctxt",
+          "s",
+          "z"
+        ],
+        "properties": {
+          "n": {
+            "$ref": "#/definitions/BigNumberBytes"
+          },
+          "r": {
+            "$ref": "#/definitions/WMap"
+          },
+          "rctxt": {
+            "$ref": "#/definitions/BigNumberBytes"
+          },
+          "s": {
+            "$ref": "#/definitions/BigNumberBytes"
+          },
+          "z": {
+            "$ref": "#/definitions/BigNumberBytes"
+          }
+        }
+      },
+      "WCredentialPubKey": {
+        "type": "object",
+        "required": [
+          "p_key"
+        ],
+        "properties": {
+          "p_key": {
+            "$ref": "#/definitions/WCredentialPrimaryPubKey"
+          },
+          "r_key": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/WCredentialRevocationPubKey"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "WCredentialRevocationPubKey": {
+        "type": "object",
+        "required": [
+          "g",
+          "g_dash",
+          "h",
+          "h0",
+          "h1",
+          "h2",
+          "h_cap",
+          "htilde",
+          "pk",
+          "u",
+          "y"
+        ],
+        "properties": {
+          "g": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "g_dash": {
+            "$ref": "#/definitions/PointG2Bytes"
+          },
+          "h": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "h0": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "h1": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "h2": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "h_cap": {
+            "$ref": "#/definitions/PointG2Bytes"
+          },
+          "htilde": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "pk": {
+            "$ref": "#/definitions/PointG1Bytes"
+          },
+          "u": {
+            "$ref": "#/definitions/PointG2Bytes"
+          },
+          "y": {
+            "$ref": "#/definitions/PointG2Bytes"
+          }
+        }
+      },
+      "WMap": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": [
+            {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            {
+              "$ref": "#/definitions/BigNumberBytes"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        }
+      }
+    }
+  },
+  "execute": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ExecuteMsg",
+    "type": "object",
+    "additionalProperties": false
+  },
+  "query": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "QueryMsg",
+    "type": "string",
+    "enum": [
+      "credential_pub_key"
+    ]
+  },
+  "migrate": null,
+  "sudo": null,
+  "responses": {
+    "credential_pub_key": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WCredentialPubKey",
+      "type": "object",
+      "required": [
+        "p_key"
+      ],
+      "properties": {
+        "p_key": {
+          "$ref": "#/definitions/WCredentialPrimaryPubKey"
+        },
+        "r_key": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WCredentialRevocationPubKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "definitions": {
+        "BigNumberBytes": {
+          "type": "string"
+        },
+        "Binary": {
+          "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+          "type": "string"
+        },
+        "PointG1Bytes": {
+          "$ref": "#/definitions/Binary"
+        },
+        "PointG2Bytes": {
+          "$ref": "#/definitions/Binary"
+        },
+        "WCredentialPrimaryPubKey": {
+          "type": "object",
+          "required": [
+            "n",
+            "r",
+            "rctxt",
+            "s",
+            "z"
+          ],
+          "properties": {
+            "n": {
+              "$ref": "#/definitions/BigNumberBytes"
+            },
+            "r": {
+              "$ref": "#/definitions/WMap"
+            },
+            "rctxt": {
+              "$ref": "#/definitions/BigNumberBytes"
+            },
+            "s": {
+              "$ref": "#/definitions/BigNumberBytes"
+            },
+            "z": {
+              "$ref": "#/definitions/BigNumberBytes"
+            }
+          }
+        },
+        "WCredentialRevocationPubKey": {
+          "type": "object",
+          "required": [
+            "g",
+            "g_dash",
+            "h",
+            "h0",
+            "h1",
+            "h2",
+            "h_cap",
+            "htilde",
+            "pk",
+            "u",
+            "y"
+          ],
+          "properties": {
+            "g": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "g_dash": {
+              "$ref": "#/definitions/PointG2Bytes"
+            },
+            "h": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "h0": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "h1": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "h2": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "h_cap": {
+              "$ref": "#/definitions/PointG2Bytes"
+            },
+            "htilde": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "pk": {
+              "$ref": "#/definitions/PointG1Bytes"
+            },
+            "u": {
+              "$ref": "#/definitions/PointG2Bytes"
+            },
+            "y": {
+              "$ref": "#/definitions/PointG2Bytes"
+            }
+          }
+        },
+        "WMap": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "uint8",
+                  "minimum": 0.0
+                }
+              },
+              {
+                "$ref": "#/definitions/BigNumberBytes"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        }
+      }
+    }
+  }
+}
