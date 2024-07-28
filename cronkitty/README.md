@@ -1,4 +1,6 @@
-# Cronkitty - meow
+# Cronkitty
+
+[Demo video with Vectis Smart Account](https://youtu.be/QTN-OOld80w?si=i5nabMIRaSo4KEkY)
 
 > Special thanks to @mikedotexe and the Croncat team for review and feedback in the development of this plugin
 
@@ -22,3 +24,5 @@ along with some metadata to keep track of the versioning of the Croncat contract
 
 The actual task created on Croncat is for the agents to call the `execute` entry point in the Cronkitty contract,
 who will then call the Vectis Account with the desired `CosmosMsgs`.
+
+
